@@ -1,109 +1,156 @@
 from connectors.base import BaseConnector
-from urllib.parse import urlparse
+import re
 
 class MangaConnectConnector(BaseConnector):
-    def __init__(self, browser_page, domain_url="https://example-site.invalid"):
-        """
-        domain_url: Địa chỉ trang web hiện tại (lấy từ sites.json).
-        Ví dụ: Nếu web đổi sang example-site-2.invalid, tham số này sẽ là example-site-2.invalid
-        """
-        super().__init__(browser_page)
-        self.base_url = domain_url.rstrip("/") # Xóa dấu / ở cuối nếu có
-        
-        # Tự động lấy "host" để nhận diện (ví dụ: example-site.invalid)
-        self.domain = urlparse(self.base_url).netloc
+    def __init__(self, browser_page, domain_url=None):
+        super().__init__(browser_page, domain_url)
 
     def get_manga_title(self):
         try:
-            # Ưu tiên lấy từ thẻ Span tiêu đề trong trang chi tiết
-            if self.page.ele('span.font-semibold.text-lg'):
-                return self.page.ele('span.font-semibold.text-lg').text
-            
-            # Fallback 1: Lấy từ thẻ H1 (phổ biến ở nhiều web)
-            if self.page.ele('h1'):
-                return self.page.ele('h1').text
-                
-            # Fallback 2: Lấy từ thẻ Title của trình duyệt
-            return self.page.title.split('-')[0].strip()
+            # Lấy title nhanh, xử lý chuỗi gọn gàng
+            return self.page.title.split("-")[0].strip()
         except:
-            return "Unknown Manga"
+            return "Manga_Unknown"
 
     def get_chapters(self):
-        """
-        Quét danh sách chương dựa trên cấu trúc HTML của trang web cụ thể này.
-        """
-        chapters = []
+        # [TỐI ƯU 1] Xóa bỏ time.sleep(2).
+        # Chỉ chờ nhẹ 0.5s để đảm bảo DOM đã render xong phần cơ bản
+        self.page.wait.load_start()
+        
+        # --- CHIẾN THUẬT 1: BẮN TỈA DROPDOWN (Siêu tốc) ---
+        # Đây là cấu trúc chuẩn của example-site, lấy được cái này là xong việc ngay.
         try:
-            # 1. Tìm khung chứa danh sách (ul có class overflow-y-auto)
-            ul_list = self.page.ele('ul.overflow-y-auto')
+            select_box = self.page.ele('#chapter-selector', timeout=2) # Chỉ chờ tối đa 2s
+            if select_box:
+                print("⚡ [FAST MODE] Tìm thấy menu chọn chương!")
+                return self._parse_dropdown(select_box)
+        except:
+            pass
+
+        # --- CHIẾN THUẬT 2: QUÉT LIST THÔNG MINH (Dự phòng) ---
+        # Nếu không có dropdown, ta quét thẻ A nhưng có KHOANH VÙNG
+        print("🐢 [NORMAL MODE] Đang quét danh sách...")
+        return self._parse_list_smart()
+
+    def _parse_dropdown(self, select_box):
+        """Hàm xử lý dữ liệu từ Dropdown nhanh gọn"""
+        chapters = []
+        current_url = self.page.url
+        parts = current_url.split("/")
+        domain = f"{parts[0]}//{parts[2]}" # VD: https://example-site.invalid
+
+        # Lấy toàn bộ options một lần (nhanh hơn lặp từng cái)
+        options = select_box.eles('tag:option')
+        
+        for opt in options:
+            val = opt.attr('value')
+            title = opt.text.strip()
             
-            if not ul_list:
-                # Nếu web đổi giao diện, thử tìm fallback khác
-                print("⚠️ Không tìm thấy ul.overflow-y-auto, thử tìm danh sách chung...")
-                links = self.page.eles('a[href*="/truyen/"][href*="/chap"]') 
-                # (Logic tìm fallback có thể mở rộng sau)
-            else:
-                # 2. Lấy danh sách thẻ <a> bên trong
-                links = ul_list.eles('tag:a')
-
-            if not links:
-                return []
-
-            for link in links:
-                relative_url = link.attr('href') # Dạng: /truyen/abc/oneshot
+            if val:
+                # Ghép link siêu tốc
+                if val.startswith("http"): full_url = val
+                elif val.startswith("/"): full_url = domain + val
+                else: full_url = domain + "/" + val
                 
-                # Lấy tên chương (Oneshot, Chap 1...)
-                # Tìm thẻ span có class text-ellipsis bên trong thẻ a
-                span_name = link.ele('.text-ellipsis')
-                title = span_name.text if span_name else link.text.strip()
+                chapters.append({"title": title, "url": full_url})
+        
+        return chapters
+
+    def _parse_list_smart(self):
+        """Hàm quét thẻ A nhưng có lọc rác ngay từ đầu"""
+        current_url = self.page.url
+        base_url = current_url.split("?")[0].rstrip("/")
+        
+        # Danh sách từ khóa rác cần loại bỏ ngay
+        BAD_KEYWORDS = {
+            "bắt đầu đọc", "đọc từ đầu", "đọc ngay", "đọc chương cuối", 
+            "đọc mới nhất", "theo dõi", "bình luận", "đăng nhập", 
+            "thể loại", "lịch sử", "tác giả", "nhóm dịch"
+        }
+
+        chapters_map = {}
+        
+        # [TỐI ƯU 2] Khoanh vùng tìm kiếm
+        # Thay vì quét toàn bộ trang, thử tìm container chứa list chapter
+        # Các class thường gặp ở web truyện: 'list-chapters', 'chapter-list', 'row'
+        # Nếu không tìm thấy container cụ thể, mới quét toàn trang (body)
+        container = self.page.ele('.list-chapters') or self.page.ele('#list-chapter') or self.page.ele('body')
+        
+        # Chỉ lấy thẻ a có href chứa link cơ sở (Lọc thô)
+        # Cách này giảm 90% số lượng thẻ a cần xử lý
+        all_links = container.eles(f'tag:a@@href:{base_url.split("//")[-1]}') 
+
+        parts = current_url.split("/")
+        domain = f"{parts[0]}//{parts[2]}"
+
+        for link in all_links:
+            try:
+                href = link.attr('href')
+                if not href: continue
                 
-                if not title:
-                    title = "Unknown Chapter"
+                # Chuẩn hóa Link
+                if href.startswith("/"): href = domain + href
+                href_clean = href.split("?")[0].rstrip("/")
 
-                if relative_url:
-                    # Logic ghép Domain động:
-                    # Nếu link là tương đối (/truyen...), ghép với self.base_url
-                    if not relative_url.startswith("http"):
-                        full_url = self.base_url + relative_url
-                    else:
-                        full_url = relative_url
-                        
-                    chapters.append({'title': title, 'url': full_url})
-            
-            # Đảo ngược để tải từ chương cũ nhất -> mới nhất (Tùy chọn)
-            # chapters.reverse() 
-            
-            return chapters
+                # Logic: Link con phải dài hơn link cha
+                if len(href_clean) > len(base_url):
+                    
+                    # Lấy tên (Ưu tiên span để sạch rác)
+                    chap_title = ""
+                    el_span = link.ele('.text-ellipsis') or link.ele('tag:span')
+                    if el_span: chap_title = el_span.text.strip()
+                    else: chap_title = link.text.split("\n")[0].strip()
 
-        except Exception as e:
-            print(f"Lỗi tìm chapter: {e}")
-            return []
+                    if not chap_title: chap_title = href_clean.split("/")[-1]
+
+                    # Check từ khóa cấm (dùng set lookup cực nhanh)
+                    if any(bad in chap_title.lower() for bad in BAD_KEYWORDS): continue
+                    if len(chap_title) > 80: continue # Tên quá dài là rác
+
+                    chapters_map[href_clean] = chap_title
+
+            except: continue
+        
+        # Chuyển map sang list
+        final = [{"title": t, "url": u} for u, t in chapters_map.items()]
+        final.reverse() # Đảo ngược để tải từ 1->Mới
+        return final
 
     def get_chapter_images(self, chapter_url):
-        print(f"Đang phân tích chapter: {chapter_url}")
-        self.page.get(chapter_url)
+        # [TỐI ƯU 3] Không load lại trang nếu URL trùng (Tránh lặp)
+        if self.page.url != chapter_url:
+            self.page.get(chapter_url)
         
+        # Chờ phần tử quan trọng xuất hiện thay vì chờ cứng 2s
+        # Chỉ chờ tối đa 3s cho ảnh load
         try:
-            # Chờ trang tải xong
-            self.page.wait.load_start()
+            self.page.wait.ele('tag:img', timeout=3) 
+        except: pass
+        
+        image_urls = []
+        
+        # Chiến thuật tìm container chứa ảnh chính xác
+        container = (
+            self.page.ele('#chapter-content') or 
+            self.page.ele('.reading-content') or 
+            self.page.ele('.page-chapter')
+        )
+        
+        target = container if container else self.page
+        
+        # Lấy tất cả ảnh trong 1 lệnh duy nhất
+        imgs = target.eles('tag:img')
+        
+        for img in imgs:
+            # Lấy data-src trước (lazyload), rồi đến src
+            src = img.attr('data-original') or img.attr('data-src') or img.attr('src')
+            if not src: continue
             
-            # Lấy toàn bộ thẻ img
-            images = self.page.eles('tag:img')
-            image_urls = []
-            
-            # Danh sách đen (những từ khóa trong link ảnh rác)
-            blacklist = ['logo', 'icon', 'avatar', 'banner', 'ads', 'tracking']
+            # Lọc nhanh đuôi file
+            src_lower = src.lower()
+            if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                # Lọc rác (icon, logo)
+                if not any(bad in src_lower for bad in ['avatar', 'logo', 'icon', 'banner']):
+                    image_urls.append(src)
 
-            for img in images:
-                # Lấy link ảnh ưu tiên data-src (lazy load) rồi mới tới src
-                src = img.attr('data-src') if img.attr('data-src') else img.attr('src')
-                
-                if src and "http" in src:
-                    # Lọc bỏ ảnh rác
-                    if not any(bad_word in src for bad_word in blacklist):
-                        image_urls.append(src)
-            
-            return image_urls
-        except Exception as e:
-            print(f"Lỗi lấy ảnh: {e}")
-            return []
+        return list(dict.fromkeys(image_urls))

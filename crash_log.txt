@@ -1,0 +1,10 @@
+CRASH REPORT:
+Traceback (most recent call last):
+  File "d:\MangaDownloader_Project\main.py", line 48, in _run_safe_background_task
+    self._run_logic(url)
+    ~~~~~~~~~~~~~~~^^^^^
+  File "d:\MangaDownloader_Project\main.py", line 168, in _run_logic
+    if not os.path.exists(chap_dir): os.makedirs(chap_dir)
+                                     ~~~~~~~~~~~^^^^^^^^^^
+  File "<frozen os>", line 236, in makedirs
+OSError: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'D:\\MangaDownloader_Project\\Downloads\\Từ việc nghịch ti đến trò chơi tình dục cùng em gái\\1 bắn cực ngọtttttttt 333\n10.3k\n11 giờ'

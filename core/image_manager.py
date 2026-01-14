@@ -1,60 +1,51 @@
 import os
 from PIL import Image
-from io import BytesIO
+import io
 
-def save_image(image_data, save_folder, file_name, target_format="PNG"):
+def save_image(image_data, save_path, file_name, format_type):
     """
-    Lưu ảnh với tính năng Smart Convert.
-    - target_format: "PNG", "JPEG", "WEBP"
+    Lưu ảnh từ dữ liệu bytes.
+    :param image_data: Dữ liệu ảnh (bytes)
+    :param save_path: Thư mục lưu
+    :param file_name: Tên file (không đuôi)
+    :param format_type: 'PNG', 'JPEG', 'WEBP', 'ORIGINAL'
     """
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
     try:
-        # 1. Tạo thư mục
-        if not os.path.exists(save_folder):
-            os.makedirs(save_folder)
-
-        # 2. Đọc ảnh từ RAM để kiểm tra định dạng gốc
-        image = Image.open(BytesIO(image_data))
-        source_format = image.format.upper() if image.format else "UNKNOWN"
-
-        # Chuẩn hóa target_format (để so sánh chính xác)
-        target_format = target_format.upper()
-        if target_format == "JPG": target_format = "JPEG"
-
-        # --- LOGIC SMART CHECK ---
-        # Nếu định dạng tải về TRÙNG KHỚP với định dạng muốn lưu
-        # => Lưu thẳng dữ liệu thô (Raw bytes) -> Nhanh nhất, chất lượng gốc 100%
-        if source_format == target_format:
-            # Xác định đuôi file
-            ext = target_format.lower().replace("jpeg", "jpg")
-            save_path = os.path.join(save_folder, f"{file_name}.{ext}")
-            
-            with open(save_path, 'wb') as f:
+        # Nếu chọn giữ nguyên gốc
+        if format_type == "ORIGINAL":
+            # Mặc định lưu jpg nếu không đoán được, nhưng thực tế nên check header
+            # Ở đây để đơn giản ta lưu .jpg, hoặc có thể check magic number
+            final_path = os.path.join(save_path, f"{file_name}.jpg")
+            with open(final_path, "wb") as f:
                 f.write(image_data)
-            return True, save_path
+            return
 
-        # --- LOGIC CONVERT (Nếu khác định dạng) ---
-        # Xác định đuôi file và mode
-        save_ext = target_format.lower().replace("jpeg", "jpg")
-        save_path = os.path.join(save_folder, f"{file_name}.{save_ext}")
-
-        # Xử lý transparency (trong suốt)
-        # Nếu lưu JPEG (không hỗ trợ trong suốt) thì phải xóa nền alpha
-        if target_format == "JPEG" and image.mode in ("RGBA", "P"):
+        # Dùng Pillow để xử lý/convert
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Chuyển sang RGB nếu lưu JPEG (vì JPEG không hỗ trợ trong suốt)
+        if format_type == "JPEG" and image.mode in ("RGBA", "P"):
             image = image.convert("RGB")
-        
-        # Cấu hình tham số lưu
-        save_params = {}
-        if target_format == "JPEG":
-            save_params["quality"] = 90
-        elif target_format == "PNG":
-            save_params["compress_level"] = 6
-        elif target_format == "WEBP":
-            save_params["quality"] = 90
-            save_params["method"] = 6
 
-        image.save(save_path, target_format, **save_params)
-        return True, save_path
+        # Xác định đuôi file
+        ext = format_type.lower()
+        if format_type == "JPEG": ext = "jpg"
         
+        final_path = os.path.join(save_path, f"{file_name}.{ext}")
+        
+        # Lưu ảnh với chất lượng cao
+        if format_type == "JPEG":
+            image.save(final_path, format="JPEG", quality=90)
+        elif format_type == "WEBP":
+            image.save(final_path, format="WEBP", quality=90)
+        else:
+            image.save(final_path, format="PNG")
+            
     except Exception as e:
-        print(f"❌ Lỗi lưu ảnh {file_name}: {e}")
-        return False, str(e)
+        print(f"Lỗi save_image: {e}")
+        # Fallback: Nếu lỗi convert thì cứ lưu thô (dump bytes)
+        with open(os.path.join(save_path, f"{file_name}_error.bin"), "wb") as f:
+            f.write(image_data)

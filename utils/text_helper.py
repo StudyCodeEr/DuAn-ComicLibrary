@@ -2,14 +2,22 @@ import re
 
 def clean_filename(name):
     """
-    Loại bỏ các ký tự bị cấm trong tên file/folder của Windows
+    Làm sạch chuỗi để dùng làm tên file/thư mục an toàn trên Windows/Linux.
+    Loại bỏ các ký tự cấm: < > : " / \ | ? *
     """
-    if not name:
-        return "Unknown_Name"
-        
-    # Thêm chữ r ở trước chuỗi để sửa lỗi SyntaxWarning
-    # Regex này lọc bỏ: \ / : * ? " < > |
-    cleaned = re.sub(r'[\\/*?:"<>|]', "", name)
+    if not name: return "Unknown"
     
-    # Xóa khoảng trắng thừa và trả về
-    return cleaned.strip()
+    # 1. Thay thế các ký tự cấm bằng dấu gạch ngang
+    cleaned = re.sub(r'[<>:"/\\|?*]', '-', str(name))
+    
+    # 2. Loại bỏ các ký tự điều khiển (xuống dòng, tab...) gây lỗi WinError 123
+    cleaned = re.sub(r'[\x00-\x1f]', '', cleaned)
+    
+    # 3. Xóa khoảng trắng thừa và dấu chấm ở cuối (Windows ghét dấu chấm cuối folder)
+    cleaned = cleaned.strip().rstrip('.')
+    
+    # 4. Giới hạn độ dài tên file (Windows giới hạn đường dẫn 255 ký tự)
+    if len(cleaned) > 100:
+        cleaned = cleaned[:100]
+        
+    return cleaned
