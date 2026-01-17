@@ -24,12 +24,40 @@ class MangaApp:
         self.is_taskbar_expanded = False 
         self.current_zoom = 1.0 
         
+        # Xác định đường dẫn gốc của App (Nơi chứa file .exe)
+        if getattr(sys, 'frozen', False):
+            self.base_dir = os.path.dirname(sys.executable)
+        else:
+            self.base_dir = os.path.dirname(os.path.abspath(__file__))
+
         self.load_config()
         self.setup_page()
         try:
             self.build_ui()
         except Exception as e:
             raise e
+
+    # --- [QUAN TRỌNG] HÀM XỬ LÝ ĐƯỜNG DẪN THÔNG MINH ---
+    def smart_path_resolve(self, db_path):
+        """
+        Tự động chuyển đổi đường dẫn tuyệt đối cũ sang tương đối.
+        Trả về: (Path mới, Có thay đổi hay không?)
+        """
+        # 1. Nếu đường dẫn trong DB vẫn đúng -> Dùng luôn
+        if os.path.exists(db_path):
+            return db_path, False
+        
+        # 2. Nếu không tìm thấy, thử tìm trong thư mục Downloads cạnh file .exe
+        manga_folder_name = os.path.basename(os.path.normpath(db_path))
+        
+        # Đường dẫn tương đối dự đoán
+        relative_path = os.path.join(self.base_dir, "Downloads", manga_folder_name)
+        
+        if os.path.exists(relative_path):
+            return relative_path, True # True nghĩa là ĐÃ TÌM THẤY path mới thay thế
+            
+        # 3. Nếu vẫn không thấy
+        return db_path, False
 
     # --- CONFIG & SETUP ---
     def load_config(self):
@@ -53,6 +81,7 @@ class MangaApp:
 
     def setup_page(self):
         self.page.title = "Manga Local Library"
+        self.page.window_icon = "app_icon.ico"
         self.page.theme_mode = ft.ThemeMode.DARK
         self.page.bgcolor = "#0f172a" 
         self.page.window_width = 1100
@@ -75,12 +104,11 @@ class MangaApp:
         SMOOTH_CURVE = ft.AnimationCurve.EASE_OUT_CUBIC
 
         # =================================================================
-        # 1. GIAO DIỆN READER (LỚP TRÊN CÙNG)
+        # 1. GIAO DIỆN READER
         # =================================================================
         
         self.reader_list_view = ft.ListView(expand=True, spacing=0, padding=0)
         
-        # Container chứa ảnh nền
         self.reader_bg_container = ft.Container(
             content=self.reader_list_view,
             image_src="bg-dark.jpg",            
@@ -91,10 +119,9 @@ class MangaApp:
 
         self.reader_title = ft.Text("Đang đọc...", size=16, weight="bold", color="white", max_lines=1, overflow=ft.TextOverflow.ELLIPSIS)
         
-        # [MỚI] Slider Zoom đưa lên Header
         self.slider_zoom = ft.Slider(
             min=0.2, max=1.0, value=1.0, divisions=8, 
-            label="{value}", width=150, # Kích thước nhỏ gọn hơn cho Header
+            label="{value}", width=150, 
             active_color=PRIMARY, inactive_color="grey",
             on_change=self.on_zoom_change
         )
@@ -112,15 +139,11 @@ class MangaApp:
             on_click=self.toggle_reader_theme
         )
 
-        # [HEADER CẬP NHẬT] Thêm Zoom vào đây
         self.reader_header = ft.Container(
             content=ft.Row([
                 ft.IconButton(icon="arrow_back", icon_color="white", on_click=self.close_reader, tooltip="Thoát"),
                 ft.Container(content=self.reader_title, expand=True), 
-                
-                # Cụm điều khiển Zoom
                 ft.Container(content=zoom_controls, padding=ft.padding.only(right=10)),
-                
                 self.btn_theme_toggle,
                 ft.IconButton(icon="folder_open", icon_color="white", tooltip="Mở thư mục gốc", 
                               on_click=lambda e: self.open_folder(self.current_manga_path))
@@ -129,7 +152,6 @@ class MangaApp:
             border=ft.border.only(bottom=ft.border.BorderSide(1, "#334155"))
         )
 
-        # --- Taskbar Controls ---
         self.btn_prev_chap = ft.IconButton(icon=ft.icons.SKIP_PREVIOUS, icon_color="white", on_click=lambda e: self.nav_chapter(-1), tooltip="Chap trước")
         self.btn_next_chap = ft.IconButton(icon=ft.icons.SKIP_NEXT, icon_color="white", on_click=lambda e: self.nav_chapter(1), tooltip="Chap sau")
         self.dd_chapters = ft.Dropdown(
@@ -155,25 +177,22 @@ class MangaApp:
             on_click=self.toggle_taskbar, tooltip="Mở thanh điều hướng"
         )
 
-        # [CHỈNH SỬA VỊ TRÍ] Hạ thấp sát đáy (bottom=0)
         self.reader_layer = ft.Stack([
             self.reader_bg_container, 
             ft.Column([self.reader_header], alignment=ft.MainAxisAlignment.START), 
             ft.Column([
                 ft.Row([self.taskbar_controls], alignment=ft.MainAxisAlignment.CENTER),
-                # Bỏ bớt khoảng trống ở đây để sát hơn
                 ft.Row([ft.Container(expand=True), self.btn_taskbar_toggle], alignment=ft.MainAxisAlignment.END)
             ], 
             alignment=ft.MainAxisAlignment.END, 
-            bottom=10, # Cách đáy 10px để không bị dính sát mép quá (nếu muốn dính hẳn thì để 0)
+            bottom=5, 
             left=10, right=10)
-        ], visible=False, expand=True)
+        ], visible=False, expand=True) 
 
         # ==========================
-        # 2. CÁC TAB CHÍNH (LỚP DƯỚI)
+        # 2. CÁC TAB CHÍNH
         # ==========================
         
-        # --- TAB 1: DASHBOARD ---
         header_title = ft.Text("MANGA DOWNLOADER", size=30, weight="bold", color="white")
         header_sub = ft.Text("Tải truyện & Xây dựng kho truyện Local", size=12, color=TEXT_HINT)
         
@@ -232,7 +251,6 @@ class MangaApp:
             padding=30, alignment=ft.alignment.top_center, width=900, expand=True,
         )
 
-        # --- TAB 2: LIBRARY ---
         self.library_grid = ft.GridView(runs_count=4, max_extent=250, child_aspect_ratio=0.7, spacing=20, run_spacing=20, expand=True)
         self.txt_search = ft.TextField(hint_text="Tìm truyện...", prefix_icon="search", height=40, content_padding=10, expand=True, on_submit=self.load_library_advanced)
         self.btn_filter = ft.ElevatedButton("Bộ lọc Tag", icon="filter_list", bgcolor="#334155", color="white", on_click=self.open_tag_dialog)
@@ -242,7 +260,6 @@ class MangaApp:
         
         tab_library_layout = ft.Container(content=ft.Column([ft.Row([ft.Text("KHO TRUYỆN LOCAL", size=24, weight="bold", color="white"), ft.IconButton(icon="refresh", on_click=lambda e: self.load_library_advanced(None))]), ft.Container(height=10), ft.Row([self.txt_search, self.btn_filter, ft.ElevatedButton("Tìm kiếm", on_click=self.load_library_advanced, bgcolor=PRIMARY, color="white")]), self.tag_summary_row, ft.Divider(color="#334155"), ft.Container(content=self.library_grid, expand=True)]), padding=30, bgcolor=BG_CARD, expand=True)
 
-        # --- TAB 3: SETTINGS ---
         self.sites_data = load_sites()
         self.dd_sites = ft.Dropdown(label="Chọn nguồn", options=[], border_radius=10, bgcolor="#0f172a", width=float('inf'), on_change=self.on_site_dropdown_change)
         self.inp_site_name = ft.TextField(label="Tên hiển thị", border_radius=10, bgcolor="#0f172a", read_only=True)
@@ -307,11 +324,9 @@ class MangaApp:
         key = self.dd_sites.value
         name = self.inp_site_name.value
         url = self.inp_site_url.value
-        
         if not url or "http" not in url:
             self.log("❌ URL không hợp lệ!", "red")
             return
-
         if key == "NEW_SITE_ADD":
             if not name:
                 self.log("⚠️ Hãy nhập tên nguồn!", "yellow")
@@ -330,25 +345,45 @@ class MangaApp:
             success, msg = update_site_url(key, url)
             if success:
                 self.sites_data = load_sites() 
-        
         self.log(msg, "green" if success else "red")
 
-    # --- LOGIC READER (ZOOM & NAVIGATION) ---
-    def open_reader(self, path, title):
-        self.current_manga_path = path
+    # --- LOGIC READER (ZOOM & NAVIGATION & AUTO-FIX DB) ---
+    def open_reader(self, path, title, manga_id=None): # [CẬP NHẬT] Nhận manga_id
+        # [CẬP NHẬT] Lấy path thật + cờ báo hiệu có sửa đổi không
+        real_path, is_changed = self.smart_path_resolve(path)
+        
+        # [QUAN TRỌNG] Nếu path thay đổi và có ID -> Update DB ngay lập tức
+        if is_changed and manga_id:
+            try:
+                db = DatabaseManager()
+                # Cập nhật đường dẫn truyện
+                db.cursor.execute("UPDATE manga SET path = ? WHERE id = ?", (real_path, manga_id))
+                
+                # Cập nhật luôn ảnh bìa (dự đoán)
+                new_cover = os.path.join(real_path, "cover.jpg")
+                if os.path.exists(new_cover):
+                    db.cursor.execute("UPDATE manga SET cover_path = ? WHERE id = ?", (new_cover, manga_id))
+                
+                db.conn.commit()
+                db.close()
+                print(f"[AUTO-FIX] Updated DB path for '{title}' -> {real_path}")
+            except Exception as ex:
+                print(f"[AUTO-FIX ERROR] {ex}")
+
+        self.current_manga_path = real_path
         self.reader_title.value = title
         self.is_taskbar_expanded = False
         self.taskbar_controls.visible = False
         self.btn_taskbar_toggle.icon = ft.icons.MENU
         self.btn_taskbar_toggle.bgcolor = "#06b6d4"
-        self.slider_zoom.value = 1.0 # Reset zoom
+        self.slider_zoom.value = 1.0 
         self.current_zoom = 1.0
         
         self.chapters_list = []
-        if os.path.exists(path):
+        if os.path.exists(real_path):
             try:
-                all_items = os.listdir(path)
-                folders = [f for f in all_items if os.path.isdir(os.path.join(path, f))]
+                all_items = os.listdir(real_path)
+                folders = [f for f in all_items if os.path.isdir(os.path.join(real_path, f))]
                 if folders:
                     self.chapters_list = folders 
                     self.dd_chapters.options = [ft.dropdown.Option(c) for c in self.chapters_list]
@@ -359,6 +394,8 @@ class MangaApp:
                     self.load_chapter_content(0, is_flat=True)
             except Exception as e:
                 self.reader_list_view.controls = [ft.Text(f"Lỗi: {e}", color="red")]
+        else:
+            self.reader_list_view.controls = [ft.Text(f"Không tìm thấy thư mục: {real_path}", color="red", size=20)]
         
         self.reader_layer.visible = True
         self.reader_layer.update()
@@ -384,15 +421,9 @@ class MangaApp:
             else:
                 current_window_width = self.page.width if self.page.width else 1000
                 display_width = current_window_width * self.current_zoom
-                
                 for f in files:
                     img_path = os.path.join(chap_path, f)
-                    img = ft.Image(
-                        src=img_path, 
-                        fit=ft.ImageFit.CONTAIN, 
-                        width=display_width, 
-                        gapless_playback=True
-                    )
+                    img = ft.Image(src=img_path, fit=ft.ImageFit.CONTAIN, width=display_width, gapless_playback=True)
                     row = ft.Row([img], alignment=ft.MainAxisAlignment.CENTER, spacing=0)
                     self.reader_list_view.controls.append(row)
         
@@ -404,13 +435,11 @@ class MangaApp:
         self.current_zoom = e.control.value
         current_window_width = self.page.width if self.page.width else 1000
         new_width = current_window_width * self.current_zoom
-        
         for control in self.reader_list_view.controls:
             if isinstance(control, ft.Row) and control.controls:
                 img_widget = control.controls[0]
                 if isinstance(img_widget, ft.Image):
                     img_widget.width = new_width
-        
         self.reader_list_view.update()
 
     def nav_chapter(self, delta):
@@ -464,7 +493,8 @@ class MangaApp:
 
     # --- UTILS ---
     def open_folder(self, path):
-        if os.path.exists(path): os.startfile(path)
+        real_path, _ = self.smart_path_resolve(path) # Chỉ lấy path
+        if os.path.exists(real_path): os.startfile(real_path)
     
     def log(self, message, color="white"):
         msg_color = {"cyan": "#22d3ee", "red": "#ef4444", "green": "#4ade80"}.get(color, color)
@@ -533,9 +563,13 @@ class MangaApp:
             self.library_grid.controls.append(ft.Text("Không tìm thấy truyện phù hợp!", color="grey"))
         else:
             for m_id, title, path, cover_path in results:
-                has_cover = cover_path and os.path.exists(cover_path) and os.path.getsize(cover_path) > 0
-                image_content = ft.Image(src=cover_path if has_cover else "assets/icon.png", fit=ft.ImageFit.COVER, width=float('inf'), height=float('inf'), error_content=ft.Icon("broken_image"), opacity=1 if has_cover else 0.5)
-                card = ft.Container(content=ft.Stack([ft.Container(content=image_content, border_radius=10), ft.Container(gradient=ft.LinearGradient(begin=ft.alignment.top_center, end=ft.alignment.bottom_center, colors=[ft.colors.with_opacity(0, "black"), ft.colors.with_opacity(0.9, "black")], stops=[0.5, 1.0]), border_radius=10), ft.Container(content=ft.Column([ft.Text(title, size=14, weight="bold", max_lines=2, overflow=ft.TextOverflow.ELLIPSIS, color="white"), ft.ElevatedButton("Đọc ngay", style=ft.ButtonStyle(padding=10, bgcolor="#06b6d4", color="white", shape=ft.RoundedRectangleBorder(radius=8)), width=float('inf'), on_click=lambda _, p=path, t=title: self.open_reader(p, t))], alignment=ft.MainAxisAlignment.END, spacing=5), padding=10, alignment=ft.alignment.bottom_center)]), bgcolor="#1e293b", border=ft.border.all(1, "#334155"), border_radius=10, on_click=lambda _, p=path, t=title: self.open_reader(p, t), tooltip=title)
+                # Resolve path bìa trước khi hiển thị
+                real_cover_path, _ = self.smart_path_resolve(cover_path)
+                
+                # Nút đọc TRUYỀN THÊM ID
+                has_cover = real_cover_path and os.path.exists(real_cover_path) and os.path.getsize(real_cover_path) > 0
+                image_content = ft.Image(src=real_cover_path if has_cover else "assets/icon.png", fit=ft.ImageFit.COVER, width=float('inf'), height=float('inf'), error_content=ft.Icon("broken_image"), opacity=1 if has_cover else 0.5)
+                card = ft.Container(content=ft.Stack([ft.Container(content=image_content, border_radius=10), ft.Container(gradient=ft.LinearGradient(begin=ft.alignment.top_center, end=ft.alignment.bottom_center, colors=[ft.colors.with_opacity(0, "black"), ft.colors.with_opacity(0.9, "black")], stops=[0.5, 1.0]), border_radius=10), ft.Container(content=ft.Column([ft.Text(title, size=14, weight="bold", max_lines=2, overflow=ft.TextOverflow.ELLIPSIS, color="white"), ft.ElevatedButton("Đọc ngay", style=ft.ButtonStyle(padding=10, bgcolor="#06b6d4", color="white", shape=ft.RoundedRectangleBorder(radius=8)), width=float('inf'), on_click=lambda _, p=path, t=title, m=m_id: self.open_reader(p, t, m))], alignment=ft.MainAxisAlignment.END, spacing=5), padding=10, alignment=ft.alignment.bottom_center)]), bgcolor="#1e293b", border=ft.border.all(1, "#334155"), border_radius=10, on_click=lambda _, p=path, t=title, m=m_id: self.open_reader(p, t, m), tooltip=title)
                 self.library_grid.controls.append(card)
         self.library_grid.update()
 
