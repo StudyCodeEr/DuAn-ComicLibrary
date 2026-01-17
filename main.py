@@ -317,6 +317,7 @@ class AppController(MangaApp):
                 db.save_manga(url, title, final_manga_path, cover_path=final_cover_path, tags=manga_tags)
                 db.close()
                 self.log("💾 Đã lưu Thư viện!", "green")
+                self.cached_tags = None # Xóa cache cũ để lần sau mở lọc nó sẽ tự tải lại tag mới từ DB
                 # Gọi hàm load thư viện từ class cha
                 self.load_library_advanced(None)
             except Exception as e:
