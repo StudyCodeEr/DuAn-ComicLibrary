@@ -61,6 +61,7 @@ class AppController(MangaApp):
             chrome_options.add_argument("--headless=new") 
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--log-level=3")
+            chrome_options.add_argument("--mute-audio")
             
             service = ChromeService(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -80,12 +81,12 @@ class AppController(MangaApp):
             self.log(f"📖 Truyện: {title}", "green")
             
             # ========================================================
-            # 3. CHIẾN THUẬT: NHẢY VÀO TRANG ĐỌC ĐỂ LẤY LIST
+            # 3. CHIẾN THUẬT: TÌM ĐƯỜNG VÀO TRANG ĐỌC
             # ========================================================
             self.log("🔍 Đang tìm đường vào giao diện đọc...", "yellow")
             chapters = []
             
-            # Bước A: Kiểm tra xem có phải đang ở trang đọc sẵn không? (Có thẻ select)
+            # Bước A: Kiểm tra xem có phải đang ở trang đọc sẵn không?
             is_reading_page = False
             try:
                 driver.find_element(By.ID, "chapter-selector")
@@ -97,34 +98,29 @@ class AppController(MangaApp):
             # Bước B: Nếu chưa ở trang đọc, tìm nút "Bắt đầu đọc"
             if not is_reading_page:
                 try:
-                    # Tìm thẻ A chứa chữ "Bắt đầu đọc" hoặc "Đọc từ đầu"
-                    # XPath này tìm thẻ a có chứa text đó, bất kể nó nằm sâu trong span/div con
                     start_btn = None
                     keywords = ["Bắt đầu đọc", "Đọc từ đầu", "Đọc ngay"]
                     
-                    for kw in keywords:
-                        try:
-                            # Tìm thẻ A chứa text (case insensitive trick trong xpath hơi dài nên dùng python lọc)
-                            links = driver.find_elements(By.TAG_NAME, "a")
-                            for link in links:
-                                if kw.lower() in link.text.lower():
-                                    start_btn = link
-                                    break
-                            if start_btn: break
-                        except: pass
+                    # Tìm thẻ a có chứa từ khóa
+                    links = driver.find_elements(By.TAG_NAME, "a")
+                    for link in links:
+                        # Lấy text an toàn (bao gồm cả text ẩn trong span con)
+                        txt = link.get_attribute("innerText") or link.text
+                        if any(k.lower() in txt.lower() for k in keywords):
+                            start_btn = link
+                            break
                     
                     if start_btn:
                         read_url = start_btn.get_attribute("href")
                         self.log(f"➡️ Tìm thấy nút 'Bắt đầu đọc', đang chuyển hướng...", "white")
                         driver.get(read_url)
-                        time.sleep(3) # Chờ trang đọc load
+                        time.sleep(3) 
                     else:
-                        self.log("⚠️ Không thấy nút 'Bắt đầu đọc'. Thử quét thủ công...", "yellow")
-                        # Fallback: Quét list cũ (nếu web lạ không có nút này)
+                        self.log("⚠️ Không thấy nút 'Bắt đầu đọc'. Vẫn thử quét...", "yellow")
                 except Exception as e:
                     self.log(f"⚠️ Lỗi khi tìm nút đọc: {e}", "yellow")
 
-            # Bước C: Quét cái Menu Dropdown (Select) thần thánh
+            # Bước C: Quét Menu Dropdown
             try:
                 select_elem = WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.ID, "chapter-selector"))
@@ -133,8 +129,6 @@ class AppController(MangaApp):
                 self.log("✅ Đã vào giao diện đọc. Đang trích xuất danh sách...", "cyan")
                 options = select_elem.find_elements(By.TAG_NAME, "option")
                 
-                # Tính domain gốc để ghép link (vì value trong option thường là link tương đối)
-                # VD: url hiện tại là https://example-site.invalid/truyen/...
                 base_domain = "/".join(driver.current_url.split("/")[:3]) 
                 
                 for opt in options:
@@ -142,19 +136,16 @@ class AppController(MangaApp):
                     txt = opt.text.strip()
                     
                     if val:
-                        # Xử lý link
                         if val.startswith("/"): full_url = base_domain + val
                         elif "http" not in val: full_url = base_domain + "/" + val
                         else: full_url = val
                         
                         chapters.append({
-                            "title": txt, # Tên sạch: "Chap 1", "Chap 2"...
+                            "title": txt, 
                             "url": full_url
                         })
                 
-                # Dropdown thường xếp Mới -> Cũ hoặc Cũ -> Mới tùy web
-                # Nhưng thường ta muốn đọc từ 1, nên ta kiểm tra
-                # Nếu chap đầu tiên là chap lớn nhất (Chap 19), ta đảo ngược
+                # Đảo ngược nếu cần (để đọc từ chap 1)
                 if chapters and "1" in chapters[-1]['title'] and "1" not in chapters[0]['title']:
                      chapters.reverse()
                      
@@ -182,7 +173,6 @@ class AppController(MangaApp):
             
             # 5. Loop Download
             for i, chap in enumerate(chapters):
-                # Tên chapter lấy từ dropdown rất sạch, chỉ cần clean ký tự cấm
                 c_name = clean_filename(chap['title'])
                 c_url = chap['url']
                 
@@ -191,7 +181,6 @@ class AppController(MangaApp):
                 
                 self.log(f"📚 [{i+1}/{len(chapters)}] Đang xử lý: {c_name}", "white")
                 
-                # Vào trang đọc
                 if driver.current_url != c_url:
                     driver.get(c_url)
                     time.sleep(2)
@@ -201,8 +190,7 @@ class AppController(MangaApp):
                 try:
                     # Tìm container
                     container = None
-                    try:
-                        container = driver.find_element(By.CSS_SELECTOR, "#chapter-content")
+                    try: container = driver.find_element(By.CSS_SELECTOR, "#chapter-content")
                     except:
                         try: container = driver.find_element(By.CSS_SELECTOR, ".reading-content")
                         except: pass
@@ -214,8 +202,11 @@ class AppController(MangaApp):
                         src = img.get_attribute("data-original") or img.get_attribute("data-src") or img.get_attribute("src")
                         if src:
                             low = src.lower()
+                            # [BỘ LỌC QUAN TRỌNG] Đã thêm 'fav' vào danh sách đen
+                            bad_keywords = ['logo', 'icon', 'avatar', 'banner', 'loader', 'fav', 'gif']
+                            
                             if any(ext in low for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                                if not any(bad in low for bad in ['logo', 'icon', 'avatar', 'banner', 'loader']):
+                                if not any(bad in low for bad in bad_keywords):
                                     if src not in img_urls: img_urls.append(src)
                 except: pass
                 
@@ -233,7 +224,6 @@ class AppController(MangaApp):
 
                 for idx, img_url in enumerate(img_urls):
                     try:
-                        # Tên file theo thứ tự idx: Trang_000, Trang_001...
                         file_name = f"Trang_{idx:03d}"
                         self.log(f"   ⬇️ Tải ảnh {idx+1}...", "white")
                         

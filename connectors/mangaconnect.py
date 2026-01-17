@@ -37,7 +37,7 @@ class MangaConnectConnector(BaseConnector):
         chapters = []
         current_url = self.page.url
         parts = current_url.split("/")
-        domain = f"{parts[0]}//{parts[2]}" # VD: https://example-site.invalid
+        domain = f"{parts[0]}//{parts[2]}" # VD:
 
         # Lấy toàn bộ options một lần (nhanh hơn lặp từng cái)
         options = select_box.eles('tag:option')
@@ -63,8 +63,8 @@ class MangaConnectConnector(BaseConnector):
         
         # Danh sách từ khóa rác cần loại bỏ ngay
         BAD_KEYWORDS = {
-            "bắt đầu đọc", "đọc từ đầu", "đọc ngay", "đọc chương cuối", 
-            "đọc mới nhất", "theo dõi", "bình luận", "đăng nhập", 
+            "đọc chương cuối", 
+             "theo dõi", "bình luận", "đăng nhập", 
             "thể loại", "lịch sử", "tác giả", "nhóm dịch"
         }
 
@@ -74,7 +74,7 @@ class MangaConnectConnector(BaseConnector):
         # Thay vì quét toàn bộ trang, thử tìm container chứa list chapter
         # Các class thường gặp ở web truyện: 'list-chapters', 'chapter-list', 'row'
         # Nếu không tìm thấy container cụ thể, mới quét toàn trang (body)
-        container = self.page.ele('.list-chapters') or self.page.ele('#list-chapter') or self.page.ele('body')
+        container = self.page.ele('.list-chapters') or self.page.ele('#list-chapter') or self.page.ele('.chapters-list') or self.page.ele('body')
         
         # Chỉ lấy thẻ a có href chứa link cơ sở (Lọc thô)
         # Cách này giảm 90% số lượng thẻ a cần xử lý
@@ -150,7 +150,7 @@ class MangaConnectConnector(BaseConnector):
             src_lower = src.lower()
             if any(ext in src_lower for ext in ['.jpg', '.jpeg', '.png', '.webp']):
                 # Lọc rác (icon, logo)
-                if not any(bad in src_lower for bad in ['avatar', 'logo', 'icon', 'banner']):
+                if not any(bad in src_lower for bad in ['avatar', 'logo', 'icon', 'banner', 'fav']):
                     image_urls.append(src)
 
         return list(dict.fromkeys(image_urls))
