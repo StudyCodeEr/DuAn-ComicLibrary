@@ -7,6 +7,19 @@ import json
 import requests
 import re
 import shutil 
+import multiprocessing
+import uvicorn
+
+# --- CẤU HÌNH ĐƯỜNG DẪN ---
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
+# --- IMPORT SERVER ---
+try:
+    from server_pc import app, run_discovery_listener
+except ImportError:
+    print("❌ LỖI: Không tìm thấy file server_pc.py")
+    sys.exit(1)
 
 # --- THƯ VIỆN SELENIUM ---
 from selenium import webdriver
@@ -16,26 +29,47 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import WebDriverException # Import để bắt lỗi mạng
+from selenium.common.exceptions import WebDriverException
 
 # --- IMPORT MODULE ---
-try:
-    from utils.logger import log_info, log_error, log_crash
-except ImportError:
-    def log_info(msg): print(f"[INFO] {msg}")
-    def log_error(msg): print(f"[ERROR] {msg}")
-    def log_crash(e): print(f"[CRASH] {e}")
-
 try:
     from gui.app_layout import MangaApp
     from core.image_manager import save_image
     from core.domain_manager import load_sites
     from core.database import DatabaseManager 
     from utils.text_helper import clean_filename
+    
+    # Logger dự phòng nếu lỗi import
+    def log_crash(e): print(f"[CRASH] {e}")
 except ImportError as e:
-    print("❌ LỖI IMPORT SYSTEM: Kiểm tra lại cấu trúc thư mục!")
+    print(f"❌ LỖI IMPORT SYSTEM: {e}")
     sys.exit(1)
 
+# --- HÀM TÌM RESOURCE ---
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# --- [QUAN TRỌNG] LOGGER CHUYỂN HƯỚNG PRINT VÀO APP ---
+class FletLogger:
+    def __init__(self, app_instance):
+        self.app = app_instance 
+
+    def write(self, message):
+        if message.strip():
+            # Gọi hàm log_server bên app_layout để in vào Tab Console
+            # Kiểm tra xem hàm có tồn tại không để tránh lỗi
+            if hasattr(self.app, 'log_server'):
+                self.app.log_server(message.strip())
+            else:
+                pass # Bỏ qua nếu UI chưa sẵn sàng
+
+    def flush(self): pass
+
+# --- CONTROLLER CHÍNH ---
 class AppController(MangaApp):
     def start_download_process(self, e):
         url = self.url_input.value
@@ -56,34 +90,23 @@ class AppController(MangaApp):
             log_crash(e)
         finally:
             self.btn_download.disabled = False
-            self.page.update()
+            # Dùng self.page.update() vì kiến trúc Direct Page
+            if self.page: self.page.update()
 
     def _run_logic(self, url):
-        # [FIX] Tự động sửa URL nếu thiếu http/https
         url = url.strip()
-        if not url.startswith("http"):
-            url = "https://" + url
+        if not url.startswith("http"): url = "https://" + url
 
         driver = None
         try:
-            # ==================================================================
-            # 1. CẤU HÌNH SELENIUM (SPEED & ANTI-CRASH)
-            # ==================================================================
+            # 1. CẤU HÌNH SELENIUM
             chrome_options = Options()
             chrome_options.add_argument("--headless=new") 
-            
-            # [QUAN TRỌNG] Chiến thuật tải Eager: Không chờ quảng cáo load xong
             chrome_options.page_load_strategy = 'eager'
-            
-            # Ngụy trang User-Agent
             chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            
-            # Tắt dấu hiệu Automation
             chrome_options.add_argument("--disable-blink-features=AutomationControlled")
             chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
             chrome_options.add_experimental_option('useAutomationExtension', False)
-            
-            # Tối ưu hiệu năng
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--log-level=3")
             chrome_options.add_argument("--mute-audio")
@@ -92,9 +115,7 @@ class AppController(MangaApp):
             driver = webdriver.Chrome(service=service, options=chrome_options)
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
-            # ==================================================================
-            # 2. TRUY CẬP AN TOÀN (TRY-CATCH)
-            # ==================================================================
+            # 2. TRUY CẬP
             self.log(f"🌍 Đang truy cập: {url}")
             try:
                 driver.get(url)
@@ -102,11 +123,10 @@ class AppController(MangaApp):
                 self.log(f"❌ Lỗi kết nối! Kiểm tra lại Link hoặc Mạng.", "red")
                 return
 
-            # Smart Wait: Đợi tối đa 5s cho thẻ body xuất hiện
             try: WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
             except: pass
             
-            # Lấy tên truyện (Ưu tiên H1)
+            # Lấy tên truyện
             try:
                 h1_elem = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.TAG_NAME, "h1")))
                 page_title = h1_elem.text.strip()
@@ -117,7 +137,7 @@ class AppController(MangaApp):
             title = clean_filename(page_title)
             self.log(f"📖 Truyện: {title}", "green")
             
-            # Tạo thư mục lưu
+            # Tạo thư mục
             base_dir = "Downloads"
             if os.path.exists("config.json"):
                 try:
@@ -130,9 +150,7 @@ class AppController(MangaApp):
             if not os.path.exists(final_manga_path):
                 os.makedirs(final_manga_path)
 
-            # ==================================================================
-            # 3. LẤY TAGS (XPATH CHUẨN)
-            # ==================================================================
+            # 3. LẤY TAGS
             manga_tags = []
             try:
                 xpath_tags = "//span[contains(text(), 'Thể loại')]/../a"
@@ -145,9 +163,7 @@ class AppController(MangaApp):
             if not manga_tags: manga_tags = ["Chưa phân loại"]
             self.log(f"🏷️ Tags: {', '.join(manga_tags)}", "cyan")
 
-            # ==================================================================
-            # 4. TẢI ẢNH BÌA (REGEX & REFERER)
-            # ==================================================================
+            # 4. TẢI ẢNH BÌA
             cover_local_path = ""
             try:
                 cover_url = None
@@ -179,24 +195,19 @@ class AppController(MangaApp):
             except Exception as e:
                 self.log(f"⚠️ Chưa tải được bìa gốc: {e}", "yellow")
 
-            # ==================================================================
-            # 5. TÌM NÚT ĐỌC & CHUYỂN TRANG
-            # ==================================================================
+            # 5. TÌM NÚT ĐỌC
             self.log("🔍 Tìm nút 'Bắt đầu đọc'...", "yellow")
             try:
                 start_btn = driver.find_element(By.XPATH, "//span[contains(text(), 'Bắt đầu đọc')]/ancestor::a")
                 read_url = start_btn.get_attribute("href")
                 self.log("➡️ Chuyển hướng...", "cyan")
                 driver.get(read_url)
-                # Smart Wait nhẹ sau khi chuyển trang
                 try: WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "img")))
                 except: pass
             except:
                 self.log("⚠️ Quét trang hiện tại...", "yellow")
 
-            # ==================================================================
-            # 6. QUÉT DANH SÁCH CHƯƠNG
-            # ==================================================================
+            # 6. QUÉT CHƯƠNG
             chapters = []
             try:
                 select_elem = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, "chapter-selector")))
@@ -222,10 +233,12 @@ class AppController(MangaApp):
 
             self.log(f"✅ Tìm thấy {len(chapters)} chương.", "cyan")
             
-            # ==================================================================
-            # 7. TẢI ẢNH CHƯƠNG
-            # ==================================================================
-            save_fmt = self.format_dropdown.value
+            # 7. TẢI ẢNH
+            save_fmt = "PNG"
+            # Truy cập biến format_dropdown từ self (kế thừa MangaApp)
+            if hasattr(self, 'format_dropdown') and self.format_dropdown.value:
+                save_fmt = self.format_dropdown.value
+
             s = requests.Session() 
             for cookie in driver.get_cookies(): s.cookies.set(cookie['name'], cookie['value'])
             
@@ -279,9 +292,7 @@ class AppController(MangaApp):
                 
                 self.log(f"   ✅ Xong: {len(img_urls)} ảnh", "green")
 
-            # ==================================================================
-            # 8. TẠO BÌA DỰ PHÒNG & LƯU DB
-            # ==================================================================
+            # 8. LƯU DB
             final_cover_path = ""
             if cover_local_path and os.path.exists(cover_local_path) and os.path.getsize(cover_local_path) > 1024:
                 final_cover_path = cover_local_path
@@ -306,6 +317,8 @@ class AppController(MangaApp):
                 db.save_manga(url, title, final_manga_path, cover_path=final_cover_path, tags=manga_tags)
                 db.close()
                 self.log("💾 Đã lưu Thư viện!", "green")
+                # Gọi hàm load thư viện từ class cha
+                self.load_library_advanced(None)
             except Exception as e:
                 self.log(f"⚠️ Lỗi DB: {e}", "red")
 
@@ -317,8 +330,42 @@ class AppController(MangaApp):
                 try: driver.quit()
                 except: pass
 
+# --- HÀM KHỞI CHẠY CHÍNH ---
 def main():
-    try: ft.app(target=AppController)
-    except Exception as e: log_crash(e)
+    assets_dir = resource_path("assets")
+    
+    # Định nghĩa hàm Wrapper để Flet chạy
+    def app_main(page: ft.Page):
+        # 1. Khởi tạo AppController
+        # (Nó sẽ gọi MangaApp.__init__ -> setup UI -> tạo biến self.server_log_view)
+        my_app = AppController(page)
+        
+        # 2. Bẻ hướng Print -> Tab Console
+        # Lúc này my_app đã có hàm log_server và biến server_log_view
+        sys.stdout = FletLogger(my_app)
+        sys.stderr = FletLogger(my_app)
+        
+        print("🚀 Hệ thống đã sẵn sàng...") # Dòng này sẽ hiện lên Console Tab ngay lập tức
 
-if __name__ == "__main__": main()
+        # 3. Chạy Server ở luồng riêng
+        def start_server_thread():
+            print("📡 Đang khởi động Server PC...")
+            threading.Thread(target=run_discovery_listener, daemon=True).start()
+            try:
+                # Tắt log config của uvicorn để nó dùng print của ta
+                uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
+            except Exception as e:
+                print(f"❌ Lỗi Server: {e}")
+
+        server_thread = threading.Thread(target=start_server_thread, daemon=True)
+        server_thread.start()
+
+    # Chạy App
+    try: 
+        ft.app(target=app_main, assets_dir=assets_dir)
+    except Exception as e: 
+        log_crash(e)
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    main()
