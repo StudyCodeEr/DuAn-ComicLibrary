@@ -16,6 +16,7 @@ sys.path.append(current_dir)
 
 # --- IMPORT SERVER ---
 try:
+    import server_pc
     from server_pc import app, run_discovery_listener
 except ImportError:
     print("❌ LỖI: Không tìm thấy file server_pc.py")
@@ -71,6 +72,23 @@ class FletLogger:
 
 # --- CONTROLLER CHÍNH ---
 class AppController(MangaApp):
+    def __init__(self, page):
+        super().__init__(page) # Gọi init của cha (MangaApp)
+        # Bắt đầu luồng lắng nghe lệnh từ Server
+        threading.Thread(target=self.monitor_remote_commands, daemon=True).start()
+
+    # [THÊM MỚI] Hàm liên tục kiểm tra xem có thư trong hàng đợi không
+    def monitor_remote_commands(self):
+        while True:
+            # Lấy URL từ hàng đợi (Lệnh này sẽ chờ/block nếu hàng đợi rỗng)
+            url = server_pc.download_queue.get()
+            if url:
+                self.log(f"📡 NHẬN LỆNH REMOTE: {url}", "cyan")
+                # Gọi hàm tải thật (Sử dụng hàm có sẵn _run_safe_background_task)
+                # Lưu ý: Hàm này sẽ chặn luồng này cho đến khi tải xong.
+                # Điều này tốt vì giúp tải lần lượt, không bị loạn Selenium.
+                self._run_safe_background_task(url)
+
     def start_download_process(self, e):
         url = self.url_input.value
         if not url:
