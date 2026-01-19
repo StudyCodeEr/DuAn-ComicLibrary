@@ -371,8 +371,8 @@ def main():
             print("📡 Đang khởi động Server PC...")
             threading.Thread(target=run_discovery_listener, daemon=True).start()
             try:
-                # Tắt log config của uvicorn để nó dùng print của ta
-                uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
+                # [ĐÃ SỬA] Thêm log_level="warning" để chặn các thông báo gây lỗi
+                uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None, log_level="warning")
             except Exception as e:
                 print(f"❌ Lỗi Server: {e}")
 
