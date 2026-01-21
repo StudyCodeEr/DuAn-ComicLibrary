@@ -17,7 +17,9 @@ def clean_filename(name):
     cleaned = cleaned.strip().rstrip('.')
     
     # 4. Giới hạn độ dài tên file (Windows giới hạn đường dẫn 255 ký tự)
-    if len(cleaned) > 100:
-        cleaned = cleaned[:100]
+    # [UPDATED] User requested to remove the 100 char limit.
+    # Note: Long paths might still cause issues on Windows if > 260 chars total.
+    # if len(cleaned) > 100:
+    #     cleaned = cleaned[:100]
         
     return cleaned

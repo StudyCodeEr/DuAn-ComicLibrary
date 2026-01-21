@@ -14,8 +14,16 @@ download_queue = queue.Queue()
 
 app = FastAPI()
 
+import sys
+
 # Xác định đường dẫn thư mục gốc và thư mục tải về
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# [FIX] PyInstaller: Khi đóng gói, file này nằm trong thư mục temp (_MEIPASS)
+# Chúng ta muốn lưu DB và Downloads cạnh file .exe
+if getattr(sys, "frozen", False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 DOWNLOAD_DIR = os.path.join(BASE_DIR, "Downloads")
 DB_PATH = os.path.join(BASE_DIR, "manga_library.db")
 

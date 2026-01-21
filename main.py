@@ -130,6 +130,11 @@ class AppController(MangaApp):
             chrome_options.add_argument("--mute-audio")
             
             service = ChromeService(ChromeDriverManager().install())
+            
+            # [FIX] Ẩn cửa sổ Console đen ngòm khi chạy Chromedriver trên Windows
+            if os.name == 'nt':
+                 service.creation_flags = 0x08000000
+                 
             driver = webdriver.Chrome(service=service, options=chrome_options)
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
@@ -145,12 +150,40 @@ class AppController(MangaApp):
             except: pass
             
             # Lấy tên truyện
+            page_title = "Manga_Unknown"
+            
+            # [IMPROVED] Priority 1: Meta og:title (Chuẩn nhất)
             try:
-                h1_elem = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.TAG_NAME, "h1")))
-                page_title = h1_elem.text.strip()
+                og_title = driver.find_element(By.XPATH, "//meta[@property='og:title']").get_attribute("content")
+                if og_title:
+                    page_title = og_title.strip()
             except:
-                try: page_title = driver.title.split("-")[0].strip()
-                except: page_title = "Manga_Unknown"
+                pass
+
+            # [IMPROVED] Priority 2: H1 Tag (Nếu meta fail)
+            if page_title == "Manga_Unknown":
+                try:
+                    h1_elem = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.TAG_NAME, "h1")))
+                    page_title = h1_elem.text.strip()
+                except:
+                    pass
+
+            # [IMPROVED] Priority 3: Title Fallback (Smart Split)
+            if page_title == "Manga_Unknown":
+                try: 
+                    raw_title = driver.title.strip()
+                    # Thử tách bằng " - " hoặc "|" để lấy phần tên trước Site Name
+                    # VD: "Naruto - Full Colored - NetTruyen" -> Lấy "Naruto - Full Colored"
+                    for sep in [" - ", " | ", " – "]:
+                        if sep in raw_title:
+                            page_title = raw_title.split(sep)[0].strip()
+                            break
+                    else:
+                        # Nếu không có separator đặc biệt, dùng luôn cả dòng title
+                        # Tránh split("-") mù quáng làm mất tên có dấu gạch ngang
+                        page_title = raw_title
+                except: 
+                    page_title = "Manga_Unknown"
             
             title = clean_filename(page_title)
             self.log(f"📖 Truyện: {title}", "green")
