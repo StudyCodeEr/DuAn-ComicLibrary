@@ -198,6 +198,22 @@ class AppController(MangaApp):
                 except: pass
             
             final_manga_path = os.path.join(base_dir, clean_filename(title))
+            if os.path.exists(final_manga_path):
+                # Kiểm tra xem thư mục có file không (tránh trường hợp thư mục rỗng do tải lỗi lần trước)
+                # Đếm số lượng file/thư mục con bên trong
+                existing_files = os.listdir(final_manga_path)
+                
+                # Nếu thư mục có chứa dữ liệu (nhiều hơn 0 file) -> Đã tải rồi
+                if len(existing_files) > 0:
+                    self.log(f"⛔ DỪNG LẠI: Truyện '{title}' đã có trong máy!", "red")
+                    self.log(f"   📂 Đường dẫn: {final_manga_path}", "white")
+                    self.log(f"   👉 Hệ thống bỏ qua để tránh tải lại.", "yellow")
+                    
+                    # Đóng trình duyệt và thoát hàm luôn
+                    driver.quit()
+                    return 
+            
+            # Nếu chưa có thì tạo mới
             if not os.path.exists(final_manga_path):
                 os.makedirs(final_manga_path)
 
@@ -246,17 +262,51 @@ class AppController(MangaApp):
             except Exception as e:
                 self.log(f"⚠️ Chưa tải được bìa gốc: {e}", "yellow")
 
-            # 5. TÌM NÚT ĐỌC
-            self.log("🔍 Tìm nút 'Bắt đầu đọc'...", "yellow")
-            try:
-                start_btn = driver.find_element(By.XPATH, "//span[contains(text(), 'Bắt đầu đọc')]/ancestor::a")
-                read_url = start_btn.get_attribute("href")
-                self.log("➡️ Chuyển hướng...", "cyan")
+            # 5. TÌM NÚT ĐỌC (NÂNG CẤP: TÌM NHIỀU TỪ KHÓA)
+            self.log("🔍 Đang tìm nút đọc truyện...", "yellow")
+            read_url = None
+            
+            # 1. Danh sách các từ khóa thường gặp (Tiếng Việt & Tiếng Anh)
+            # Ưu tiên các từ khóa "Hành động" trước, sau đó mới đến tên Chapter
+            keywords = [
+                "Bắt đầu đọc", 
+                "Đọc ngay", 
+                "Đọc từ đầu", 
+                "Start Reading", 
+                "Read First", 
+                "Read Now", 
+                "Chương 1", 
+                "Chapter 1",
+                "Chap 1"
+            ]
+
+            # 2. Vòng lặp quét từng từ khóa
+            for kw in keywords:
+                try:
+                    # Tạo XPath thông minh:
+                    # - translate(...): Chuyển văn bản trên web thành chữ thường để so sánh (không phân biệt hoa/thường)
+                    # - ancestor-or-self::a: Tìm thẻ <a> bao quanh nó (dù text nằm trong span, div, b hay chính thẻ a)
+                    xpath = f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{kw.lower()}')]/ancestor-or-self::a"
+                    
+                    btn = driver.find_element(By.XPATH, xpath)
+                    href = btn.get_attribute("href")
+
+                    # Kiểm tra nếu tìm thấy và có link hợp lệ (không phải javascript:void)
+                    if href and "javascript" not in href:
+                        read_url = href
+                        self.log(f"✅ Tìm thấy nút: '{kw}'", "green")
+                        break # Tìm thấy rồi thì dừng lại ngay, không tìm nữa
+                except:
+                    continue # Nếu không thấy từ khóa này, thử từ khóa tiếp theo
+
+            # 3. Xử lý chuyển hướng
+            if read_url:
+                self.log("➡️ Chuyển hướng vào trang đọc...", "cyan")
                 driver.get(read_url)
                 try: WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "img")))
                 except: pass
-            except:
-                self.log("⚠️ Quét trang hiện tại...", "yellow")
+            else:
+                self.log("⚠️ Không thấy nút đọc, sẽ quét trang hiện tại...", "yellow")
 
             # 6. QUÉT CHƯƠNG
             chapters = []
