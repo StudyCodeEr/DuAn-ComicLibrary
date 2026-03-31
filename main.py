@@ -369,7 +369,6 @@ def main():
         # 3. Chạy Server ở luồng riêng
         def start_server_thread():
             print("📡 Đang khởi động Server PC...")
-            threading.Thread(target=run_discovery_listener, daemon=True).start()
             try:
                 # [ĐÃ SỬA] Thêm log_level="warning" để chặn các thông báo gây lỗi
                 uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None, log_level="warning")
