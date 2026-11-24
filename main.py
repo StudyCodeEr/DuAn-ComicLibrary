@@ -378,7 +378,37 @@ def main():
         server_thread = threading.Thread(target=start_server_thread, daemon=True)
         server_thread.start()
 
-    # Chạy App
+        # 4. Kích hoạt System Tray (pystray) ngầm
+        try:
+            import pystray
+            from PIL import Image
+            def show_app(icon, item):
+                if my_app.page:
+                    my_app.page.window_visible = True
+                    my_app.page.window_minimized = False
+                    my_app.page.update()
+                    
+            def quit_app(icon, item):
+                icon.stop()
+                os._exit(0)
+
+            icon_path = resource_path("app_icon.ico")
+            if not os.path.exists(icon_path):
+                icon_path = resource_path("assets/icon.png")
+            
+            if os.path.exists(icon_path):
+                image = Image.open(icon_path)
+                menu = pystray.Menu(
+                    pystray.MenuItem("Mở bảng điều khiển", show_app, default=True),
+                    pystray.MenuItem("Thoát", quit_app)
+                )
+                tray_icon = pystray.Icon("MangaDownloader", image, "Manga Downloader", menu)
+                my_app.on_hide_to_tray = lambda: tray_icon.notify("Ứng dụng vẫn chạy ngầm", "Manga Downloader") if getattr(tray_icon, 'HAS_NOTIFICATION', False) else None
+                threading.Thread(target=tray_icon.run, daemon=True).start()
+        except Exception as e:
+            print(f"⚠️ Trình System Tray không khả dụng: {e}")
+
+    # Lắng nghe nếu chạy ngầm (--hidden do Registry gọi)
     try: 
         ft.app(target=app_main, assets_dir=assets_dir)
     except Exception as e: 

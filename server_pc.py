@@ -14,8 +14,9 @@ download_queue = queue.Queue()
 
 app = FastAPI()
 
-# Xác định đường dẫn thư mục gốc và thư mục tải về
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Xác định đường dẫn thư mục gốc theo kiểu mới (fix lỗi .exe onedir)
+from utils.system_helper import get_app_dir
+BASE_DIR = get_app_dir()
 DOWNLOAD_DIR = os.path.join(BASE_DIR, "Downloads")
 DB_PATH = os.path.join(BASE_DIR, "manga_library.db")
 

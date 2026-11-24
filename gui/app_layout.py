@@ -6,6 +6,7 @@ import re
 from utils.logger import log_info, log_error
 from core.domain_manager import load_sites, update_site_url, add_new_site
 from core.database import DatabaseManager
+from utils.startup_helper import is_startup_enabled, toggle_startup
 
 CONFIG_FILE = "config.json"
 
@@ -75,8 +76,22 @@ class MangaApp:
         self.page.window_width = 1100
         self.page.window_height = 800
         self.page.padding = 0
+        self.page.window_prevent_close = True
+        self.page.on_window_event = self.on_window_event
+        if "--hidden" in sys.argv:
+            self.page.window_visible = False
+            self.page.window_minimized = True
+
         self.file_picker = ft.FilePicker(on_result=self.on_directory_selected)
         self.page.overlay.append(self.file_picker)
+
+    def on_window_event(self, e):
+        if e.data == "close":
+            self.page.window_visible = False
+            self.page.update()
+            if hasattr(self, 'on_hide_to_tray'):
+                self.on_hide_to_tray()
+
 
     def on_directory_selected(self, e):
         if e.path:
@@ -357,12 +372,23 @@ class MangaApp:
             value=self.download_path, label="Thư mục lưu", read_only=True,
             border_radius=10, bgcolor="#0f172a", expand=True
         )
+        self.sw_startup = ft.Switch(
+            label="Tự khởi động cùng hệ thống (Ẩn dưới Tray)", 
+            value=is_startup_enabled(),
+            active_color=PRIMARY,
+            on_change=lambda e: toggle_startup(self.sw_startup.value)
+        )
 
         tab_settings_layout = ft.Container(
             content=ft.Column(
                 [
                     ft.Text("CÀI ĐẶT HỆ THỐNG", size=24, weight="bold", color="white"),
                     ft.Divider(color="#334155"),
+                    ft.Container(
+                        content=ft.Column([ft.Text("HỆ THỐNG", weight="bold", color=PRIMARY), self.sw_startup]),
+                        padding=20, bgcolor=BG_CARD, border_radius=10
+                    ),
+                    ft.Divider(height=10, color="transparent"),
                     ft.Container(
                         content=ft.Column([ft.Text("HÌNH ẢNH", weight="bold", color=PRIMARY), self.format_dropdown]),
                         padding=20, bgcolor=BG_CARD, border_radius=10

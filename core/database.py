@@ -1,7 +1,8 @@
 import sqlite3
 import os
+from utils.system_helper import get_app_dir
 
-DB_FILE = "manga_library.db"
+DB_FILE = os.path.join(get_app_dir(), "manga_library.db")
 
 class DatabaseManager:
     def __init__(self):
