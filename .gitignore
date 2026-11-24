@@ -184,5 +184,8 @@ cython_debug/
 reports/debugs/DEBUG-flet_taskbar_icon.md
 /reports
 
-# Cau hinh nguon truyen local (chua domain thuc te) - dung sites.example.json lam mau
+# Cau hinh cuc bo cua tung may - xem sites.example.json
 sites.json
+
+# Du lieu runtime cua trinh duyet (khong thuoc ma nguon)
+BrowserProfile/
