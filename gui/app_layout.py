@@ -3,17 +3,20 @@ import os
 import sys
 import json
 import re
-from utils.logger import log_info, log_error
+import logging
+
+from mangalib import config as app_config
+from mangalib import paths
 from core.domain_manager import load_sites, update_site_url, add_new_site
 from core.database import DatabaseManager
 from utils.startup_helper import is_startup_enabled, toggle_startup
 
-CONFIG_FILE = "config.json"
+logger = logging.getLogger("mangalib.gui")
 
 class MangaApp:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.download_path = "Downloads"
+        self.download_path = str(paths.library_dir())
         self.sites_data = {}
         
         # --- QUẢN LÝ TAG STATE ---
@@ -29,10 +32,9 @@ class MangaApp:
         self.current_zoom = 1.0
         self.is_ui_visible = True
 
-        if getattr(sys, "frozen", False):
-            self.base_dir = os.path.dirname(sys.executable)
-        else:
-            self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        # Truoc day: dirname(__file__) -> tro vao .../gui, lech 1 cap, nen
+        # smart_path_resolve chua bao gio chay dung o ban dev.
+        self.base_dir = str(paths.data_root())
 
         self.load_config()
         self.setup_page()
@@ -43,30 +45,29 @@ class MangaApp:
 
     # --- HÀM XỬ LÝ ĐƯỜNG DẪN THÔNG MINH ---
     def smart_path_resolve(self, db_path):
-        if os.path.exists(db_path): return db_path, False
-        manga_folder_name = os.path.basename(os.path.normpath(db_path))
-        relative_path = os.path.join(self.base_dir, "Downloads", manga_folder_name)
-        if os.path.exists(relative_path): return relative_path, True
+        """Do DB cu luu duong dan tuyet doi. Phase 2 luu slug nen ham nay se bi xoa."""
+        if os.path.exists(db_path):
+            return db_path, False
+        folder = os.path.basename(os.path.normpath(db_path))
+        moved = paths.library_dir() / folder
+        if moved.exists():
+            return str(moved), True
         return db_path, False
 
     # --- CONFIG & SETUP ---
     def load_config(self):
-        if os.path.exists(CONFIG_FILE):
-            try:
-                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    self.download_path = data.get("download_path", "Downloads")
-            except: pass
-        if not os.path.exists(self.download_path):
-            try: os.makedirs(self.download_path)
-            except: self.download_path = "Downloads"
+        """Doc config qua mangalib.config - mot duong duy nhat, khong nuot loi."""
+        try:
+            cfg = app_config.load()
+        except app_config.ConfigError as exc:
+            logger.error("config.toml co van de, dung mac dinh: %s", exc)
+            cfg = app_config.AppConfig()
+        self.download_path = cfg.library_override or str(paths.library_dir())
+        os.makedirs(self.download_path, exist_ok=True)
 
     def save_config(self):
-        data = {"download_path": self.download_path}
-        try:
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-        except: pass
+        cfg = app_config.load()
+        app_config.save(cfg.model_copy(update={"library_override": self.download_path}))
 
     def setup_page(self):
         self.page.title = "Manga Local Library"
@@ -77,7 +78,13 @@ class MangaApp:
         self.page.window_height = 800
         self.page.padding = 0
         self.page.window_prevent_close = True
-        self.page.on_window_event = self.on_window_event
+        # API cu `page.on_window_event = handler` VO trong flet 0.24.1: shim
+        # deprecated cua no gan `.handler` len page.window.on_event, ma getter
+        # do tra ve chinh handler (None luc dau) -> AttributeError khi khoi tao.
+        try:
+            self.page.window.on_event = self.on_window_event
+        except AttributeError:
+            self.page.on_window_event = self.on_window_event
         if "--hidden" in sys.argv:
             self.page.window_visible = False
             self.page.window_minimized = True
@@ -697,9 +704,9 @@ class MangaApp:
         except:
             pass
         if color == "red":
-            log_error(message)
+            logger.error(message)
         else:
-            log_info(message)
+            logger.info(message)
 
     # -------------------------------------------------------------
     # LOGIC BỘ LỌC ĐÃ SỬA LỖI KHÔNG PHẢN HỒI (DÙNG OVERLAY)

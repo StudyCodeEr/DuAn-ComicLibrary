@@ -1,4 +1,5 @@
 import flet as ft
+import logging
 import threading
 import time
 import os
@@ -35,40 +36,25 @@ from selenium.common.exceptions import WebDriverException
 # --- IMPORT MODULE ---
 try:
     from gui.app_layout import MangaApp
+    from gui.log_handler import attach_ui_console
+    from mangalib import paths
+    from mangalib.logging_setup import log_crash, setup_logging
     from core.image_manager import save_image
     from core.domain_manager import load_sites
     from core.database import DatabaseManager 
     from utils.text_helper import clean_filename
     
-    # Logger dự phòng nếu lỗi import
-    def log_crash(e): print(f"[CRASH] {e}")
+    # log_crash that nam trong mangalib.logging_setup (da import o tren).
+    # Ban cu dinh nghia mot stub o day, che ham that, nen crash log chua
+    # bao gio duoc ghi ra.
 except ImportError as e:
     print(f"❌ LỖI IMPORT SYSTEM: {e}")
     sys.exit(1)
 
-# --- HÀM TÌM RESOURCE ---
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+# Duong dan tai nguyen do mangalib.paths quyet dinh (quy tac R1).
 
-# --- [QUAN TRỌNG] LOGGER CHUYỂN HƯỚNG PRINT VÀO APP ---
-class FletLogger:
-    def __init__(self, app_instance):
-        self.app = app_instance 
-
-    def write(self, message):
-        if message.strip():
-            # Gọi hàm log_server bên app_layout để in vào Tab Console
-            # Kiểm tra xem hàm có tồn tại không để tránh lỗi
-            if hasattr(self.app, 'log_server'):
-                self.app.log_server(message.strip())
-            else:
-                pass # Bỏ qua nếu UI chưa sẵn sàng
-
-    def flush(self): pass
+# FletLogger da bi xoa: no chiem sys.stdout/sys.stderr nen moi print() tu moi
+# luong deu goi page.update(). Thay bang gui/log_handler.py (mot logging.Handler).
 
 # --- CONTROLLER CHÍNH ---
 class AppController(MangaApp):
@@ -155,14 +141,9 @@ class AppController(MangaApp):
             title = clean_filename(page_title)
             self.log(f"📖 Truyện: {title}", "green")
             
-            # Tạo thư mục
-            base_dir = "Downloads"
-            if os.path.exists("config.json"):
-                try:
-                    with open("config.json", "r", encoding="utf-8") as f:
-                        cfg = json.load(f)
-                        if "download_path" in cfg: base_dir = cfg["download_path"]
-                except: pass
+            # Thu muc luu lay tu chinh app (da doc qua mangalib.config).
+            # Ban cu doc lai config.json lan hai bang duong dan tuong doi.
+            base_dir = self.download_path or str(paths.library_dir())
             
             final_manga_path = os.path.join(base_dir, clean_filename(title))
             if not os.path.exists(final_manga_path):
@@ -351,7 +332,7 @@ class AppController(MangaApp):
 
 # --- HÀM KHỞI CHẠY CHÍNH ---
 def main():
-    assets_dir = resource_path("assets")
+    assets_dir = str(paths.assets_dir())
     
     # Định nghĩa hàm Wrapper để Flet chạy
     def app_main(page: ft.Page):
@@ -359,10 +340,10 @@ def main():
         # (Nó sẽ gọi MangaApp.__init__ -> setup UI -> tạo biến self.server_log_view)
         my_app = AppController(page)
         
-        # 2. Bẻ hướng Print -> Tab Console
-        # Lúc này my_app đã có hàm log_server và biến server_log_view
-        sys.stdout = FletLogger(my_app)
-        sys.stderr = FletLogger(my_app)
+        # 2. Log chay mot chieu: logging -> handler -> tab Console.
+        #    sys.stdout duoc tra lai cho he dieu hanh.
+        setup_logging()
+        attach_ui_console(my_app.log_server)
         
         print("🚀 Hệ thống đã sẵn sàng...") # Dòng này sẽ hiện lên Console Tab ngay lập tức
 
@@ -392,9 +373,11 @@ def main():
                 icon.stop()
                 os._exit(0)
 
-            icon_path = resource_path("app_icon.ico")
+            icon_path = str(paths.app_dir() / "app_icon.ico")
             if not os.path.exists(icon_path):
-                icon_path = resource_path("assets/icon.png")
+                icon_path = str(paths.repo_root() / "app_icon.ico")
+            if not os.path.exists(icon_path):
+                icon_path = str(paths.assets_dir() / "icon.png")
             
             if os.path.exists(icon_path):
                 image = Image.open(icon_path)

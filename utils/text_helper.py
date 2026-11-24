@@ -1,7 +1,7 @@
 import re
 
 def clean_filename(name):
-    """
+    r"""
     Làm sạch chuỗi để dùng làm tên file/thư mục an toàn trên Windows/Linux.
     Loại bỏ các ký tự cấm: < > : " / \ | ? *
     """

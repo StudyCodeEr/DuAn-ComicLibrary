@@ -1,3 +1,4 @@
+import logging
 import os
 import sqlite3
 import socket
@@ -10,7 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # --- [THÊM] HÀNG ĐỢI LỆNH TOÀN CỤC ---
-download_queue = queue.Queue() 
+logger = logging.getLogger("mangalib.server")
+download_queue = queue.Queue()
 
 app = FastAPI()
 
@@ -83,7 +85,7 @@ def get_library():
         return results
 
     except Exception as e:
-        print(f"❌ Lỗi Server (Library): {e}")
+        logger.error("Lỗi API /library: %s", e)
         return []
 
 
@@ -112,7 +114,7 @@ def get_chapters(manga_name: str):
                         chapters.append({"name": item, "images": images})
         return chapters
     except Exception as e:
-        print(f"❌ Lỗi Server (Chapters): {e}")
+        logger.error("Loi API /manga: %s", e)
         return []
 
 
@@ -124,14 +126,14 @@ class DownloadRequest(BaseModel):
 
 # Hàm này không tải nữa, mà chỉ chuyển thư
 def run_download_task(url: str):
-    print(f"🚀 [Server] Nhận lệnh từ điện thoại: {url}")
+    logger.info("Nhan lenh tai tu dien thoai: %s", url)
     # Đẩy link vào hàng đợi
     download_queue.put(url)
-    print(f"✅ [Server] Đã chuyển lệnh sang bộ xử lý chính.")
+    logger.info("Da day lenh vao hang doi")
 
 @app.post("/download")
 async def trigger_download(req: DownloadRequest, background_tasks: BackgroundTasks):
-    print(f"📡 API NHẬN: {req.url}")
+    logger.info("API nhan link: %s", req.url)
     background_tasks.add_task(run_download_task, req.url)
     return {"status": "ok", "message": "Đã nhận lệnh", "url": req.url}
 
@@ -141,13 +143,13 @@ def run_discovery_listener():
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Fix lỗi chiếm cổng
     try:
         udp_socket.bind(('', 55555))
-        print("📡 UDP Discovery đang chạy...")
+        logger.info("UDP Discovery dang lang nghe cong 55555")
         while True:
             data, addr = udp_socket.recvfrom(1024)
             if data.decode('utf-8') == "DISCOVER_MANGA_SERVER":
                 udp_socket.sendto("I_AM_MANGA_SERVER".encode('utf-8'), addr)
     except Exception as e:
-        print(f"⚠️ UDP Info: {e}")
+        logger.warning("UDP Discovery dung: %s", e)
     finally:
         udp_socket.close()
 

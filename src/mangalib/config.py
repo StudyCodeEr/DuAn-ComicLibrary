@@ -36,6 +36,9 @@ class AppConfig(BaseModel):
     """Số ảnh tải song song cho mỗi host. Bản cũ tải tuần tự từng ảnh."""
 
     min_delay_ms: int = Field(default=50, ge=0, le=5_000)
+    library_override: str = ""
+    """Thư mục lưu truyện do người dùng tự chọn. Rỗng = dùng paths.library_dir()."""
+
     lan_token: str = ""
     autostart: bool = False
     theme: Literal["dark", "light"] = "dark"

@@ -72,6 +72,19 @@ def repo_root() -> Path:
     return package_dir().parent.parent
 
 
+def assets_dir() -> Path:
+    """Ảnh nền và icon đi kèm ứng dụng (tài sản bắt buộc giữ theo PRODUCT.md).
+
+    Khi đóng gói, asset nằm cạnh exe; khi chạy từ source, nằm ở gốc repo.
+    Bản cũ dùng `resource_path("assets")` = `os.path.abspath("./assets")`, nên
+    chạy từ cwd khác là không tìm thấy ảnh nền.
+    """
+    bundled = app_dir() / "assets"
+    if bundled.is_dir():
+        return bundled
+    return repo_root() / "assets"
+
+
 def data_root() -> Path:
     """Nơi chứa MỌI thứ runtime. Thứ tự quyết định, không phụ thuộc cwd.
 
