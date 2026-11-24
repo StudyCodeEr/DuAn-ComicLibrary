@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mangalib"
+version = "3.0.0.dev0"
+description = "Thu vien truyen tranh cuc bo: tai, quan ly tag/tac gia, doc tren PC va dien thoai qua LAN"
+requires-python = ">=3.12"
+dependencies = [
+    # Tang HTTP (metadata): khop TLS/HTTP2 fingerprint cua Chrome, khong can browser
+    "curl-cffi>=0.7",
+    "selectolax>=0.3.21",
+    # Tang browser (chi dung de phan giai danh sach URL anh) - dung Edge da cai san,
+    # KHONG chay `playwright install` (khong tai Chromium rieng 150MB)
+    "playwright>=1.47",
+    # Server + API
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    # Rule YAML cho tung site
+    "pyyaml>=6.0",
+    # Thumbnail (Pillow CHI duoc import trong download/images.py - xem R9)
+    "pillow>=10.4",
+    # QR ghep doi dien thoai
+    "segno>=1.6",
+    # Khay he thong Windows (truoc day THIEU trong requirements.txt du main.py can)
+    "pystray>=0.19",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+]
+# Tang 3 (JS engine ti hon) - chi cai khi `doctor-render` bao can
+js = ["py-mini-racer>=0.12"]
+
+[project.scripts]
+mangalib = "mangalib.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mangalib = ["web/**/*", "sites/*.yml", "db/*.sql"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle + pyflakes
+    "I",             # isort
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "BLE",           # flake8-blind-except  -> BLE001 chan `except Exception` nuot loi
+    "PTH",           # dung pathlib thay os.path
+    "SIM",           # simplify
+    "RUF",
+]
+# E722 (bare except) nam trong nhom "E" va KHONG duoc tat - day la quy tac R4
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# jobs/queue.py va cli.py duoc phep `except Exception` vi chung GHI loi vao job.error / exit code
+"src/mangalib/jobs/queue.py" = ["BLE001"]
+"src/mangalib/cli.py" = ["BLE001"]
+"tests/*" = ["BLE001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"

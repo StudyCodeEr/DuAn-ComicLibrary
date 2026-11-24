@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cai dat
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # E722 (bare except) + BLE001 (blind except) la quy tac R4:
+      # bien "khong nuot loi" thanh rang buoc may kiem tra duoc,
+      # thay vi loi hua. Ban cu co 27 `except:` tran.
+      - name: Ruff
+        run: ruff check src tests
+
+      - name: Pytest
+        run: pytest

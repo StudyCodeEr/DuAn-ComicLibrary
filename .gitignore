@@ -189,3 +189,10 @@ sites.json
 
 # Du lieu runtime cua trinh duyet (khong thuoc ma nguon)
 BrowserProfile/
+
+# Du lieu runtime cua mangalib (kien truc moi) - khong bao gio commit
+data/
+*.db
+logs/
+config.toml
+config.json
