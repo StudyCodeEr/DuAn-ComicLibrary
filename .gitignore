@@ -183,3 +183,6 @@ cython_debug/
 /reports
 reports/debugs/DEBUG-flet_taskbar_icon.md
 /reports
+
+# Cau hinh nguon truyen local (chua domain thuc te) - dung sites.example.json lam mau
+sites.json

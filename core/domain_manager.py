@@ -5,31 +5,36 @@ import unicodedata
 from DrissionPage import ChromiumPage
 
 CONFIG_FILE = "sites.json"
+# File mẫu (template) được commit vào repo, KHÔNG chứa địa chỉ thật.
+# File cấu hình thật (sites.json) là file local, đã được .gitignore bỏ qua.
+EXAMPLE_FILE = "sites.example.json"
 
-# Cấu hình mặc định
-DEFAULT_SITES = {
-    "vihentai": {
-        "name": "Việt Hentai",
-        "url": "https://example-site.invalid",
-        "connector": "mangaconnect"
-    },
-    "nettruyen": {
-        "name": "Việt Hentai (Server Phụ)",
-        "url": "https://example-site-2.invalid",
-        "connector": "mangaconnect"
-    }
-}
+
+def _load_example_sites():
+    """Đọc danh sách nguồn mẫu từ sites.example.json (nếu có)."""
+    if os.path.exists(EXAMPLE_FILE):
+        try:
+            with open(EXAMPLE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Không đọc được {EXAMPLE_FILE}: {e}")
+    return {}
+
 
 def load_sites():
     """Đọc file cấu hình"""
     if not os.path.exists(CONFIG_FILE):
-        save_sites(DEFAULT_SITES)
-        return DEFAULT_SITES
+        # Lần đầu chạy: tạo sites.json từ file mẫu.
+        # Người dùng tự nhập/cập nhật link thật trong app.
+        defaults = _load_example_sites()
+        save_sites(defaults)
+        return defaults
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except:
-        return DEFAULT_SITES
+    except Exception as e:
+        print(f"⚠️ Lỗi đọc {CONFIG_FILE}: {e}")
+        return _load_example_sites()
 
 def save_sites(data):
     """Lưu cấu hình"""

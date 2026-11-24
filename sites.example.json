@@ -1,0 +1,12 @@
+{
+    "site_chinh": {
+        "name": "Nguồn chính (Tên hiển thị)",
+        "url": "https://example.com",
+        "connector": "mangaconnect"
+    },
+    "site_phu": {
+        "name": "Nguồn phụ (Tên hiển thị)",
+        "url": "https://example.org",
+        "connector": "mangaconnect"
+    }
+}
