@@ -26,11 +26,13 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from mangalib import paths
+from mangalib.errors import SchemaMismatchError
 
 __all__ = [
     "SCHEMA_VERSION",
     "apply_schema",
     "connect",
+    "has_user_tables",
     "init_db",
     "read_only",
     "schema_sql",
@@ -113,9 +115,27 @@ def schema_version(conn: sqlite3.Connection) -> str | None:
     return row["value"] if row else None
 
 
+def has_user_tables(conn: sqlite3.Connection) -> bool:
+    """DB đã có bảng nào do ứng dụng tạo chưa (bỏ qua bảng nội bộ của SQLite)."""
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM sqlite_master "
+        "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+    ).fetchone()
+    return int(row["n"]) > 0
+
+
 def init_db(path: Path | str | None = None) -> Path:
-    """Tạo DB (nếu cần) và áp schema. Gọi tường minh, không bao giờ lúc import."""
+    """Tạo DB (nếu cần) và áp schema. Gọi tường minh, không bao giờ lúc import.
+
+    Raises:
+        SchemaMismatchError: khi file đã tồn tại với schema khác. Áp schema mới
+            lên bảng cũ chỉ tạo ra lỗi "no such column" ở chỗ khác, nên phải dừng
+            ở đây với một thông điệp nói rõ phải làm gì.
+    """
     target = Path(path) if path is not None else paths.db_path()
     with write(target) as conn:
+        found = schema_version(conn)
+        if found != SCHEMA_VERSION and has_user_tables(conn):
+            raise SchemaMismatchError(target, found)
         apply_schema(conn)
     return target

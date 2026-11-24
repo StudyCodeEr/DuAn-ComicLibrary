@@ -57,6 +57,38 @@ class RuleError(MangalibError):
     """File rule YAML của một site sai cấu trúc. Luôn nêu rõ field nào sai."""
 
 
+class SchemaMismatchError(MangalibError):
+    """File DB đang dùng schema khác với schema mangalib biết.
+
+    Gặp thật khi bản Flet cũ (`core/database.py`, schema v1) tạo file DB ở đúng
+    đường dẫn mới: `CREATE TABLE IF NOT EXISTS` giữ nguyên bảng v1, rồi lệnh tạo
+    index trên cột `title_sort` chết, nên mọi bảng sau đó không được tạo. Thà báo
+    rõ còn hơn để người dùng gặp "no such column".
+    """
+
+    def __init__(self, path: object, found: str | None) -> None:
+        found_text = f"schema {found}" if found else "schema cũ (không ghi phiên bản schema)"
+        super().__init__(
+            f"{path} đang dùng {found_text}, không phải schema mangalib hiện tại. "
+            f"Chạy `mangalib scan --reset` để dời file cũ sang một bên rồi dựng lại "
+            f"từ đĩa, hoặc tự xoá file đó nếu bạn không cần nó."
+        )
+        self.path = path
+        self.found = found
+
+
+class MetadataError(MangalibError):
+    """`metadata.json` của một truyện sai cấu trúc.
+
+    Quét thư viện nêu lỗi cho đúng thư mục đó rồi đi tiếp, chứ không dừng cả lần
+    quét và cũng không âm thầm bỏ qua.
+    """
+
+    def __init__(self, path: object, reason: str) -> None:
+        super().__init__(f"{path}: {reason}")
+        self.path = path
+
+
 class SourceNotFound(MangalibError):
     """Không có rule nào khớp domain của link này."""
 

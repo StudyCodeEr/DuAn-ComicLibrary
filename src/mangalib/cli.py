@@ -57,6 +57,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="tạo luôn cây thư mục dữ liệu",
     )
 
+    scan_cmd = sub.add_parser(
+        "scan",
+        help="dựng lại cơ sở dữ liệu từ thư viện trên đĩa",
+        description=(
+            "Đĩa là sự thật, DB chỉ là chỉ mục. Lệnh này quét lại thư mục thư viện "
+            "và đồng bộ DB theo đúng những gì có thật trên đĩa."
+        ),
+    )
+    scan_cmd.add_argument(
+        "--prune",
+        action="store_true",
+        help="xoá khỏi DB những truyện không còn thư mục trên đĩa",
+    )
+    scan_cmd.add_argument(
+        "--root",
+        help="thư mục thư viện cần quét (mặc định: data/library)",
+    )
+    scan_cmd.add_argument(
+        "--reset",
+        action="store_true",
+        help="dời file DB cũ sang một bên rồi dựng lại từ đĩa (không xoá gì)",
+    )
+
     return parser
 
 
@@ -79,6 +102,49 @@ def _cmd_doctor_paths(create: bool) -> int:
     return 0
 
 
+def _cmd_scan(root: str | None, prune: bool, reset: bool = False) -> int:
+    from datetime import datetime
+    from pathlib import Path
+
+    from mangalib.db import engine
+    from mangalib.library import scanner
+
+    paths.ensure_data_dirs()
+
+    if reset and paths.db_path().exists():
+        # Dời sang một bên, KHÔNG xoá: dữ liệu của người dùng không bị mất vì
+        # một lựa chọn của chúng ta.
+        aside = paths.db_path().with_suffix(f".db.bak-{datetime.now():%Y%m%d-%H%M%S}")
+        paths.db_path().replace(aside)
+        print(f"Đã dời DB cũ sang {aside.name}")
+
+    engine.init_db()
+
+    library = Path(root) if root else paths.library_dir()
+    if library.resolve() != paths.library_dir().resolve():
+        # DB chi luu slug, khong luu duong dan tuyet doi (quy tac R5), nen quet
+        # mot thu muc ngoai thu vien se cho ra chi muc tro vao cho khong co file.
+        print(f"CANH BAO: dang quet {library}")
+        print(f"          nhung app se tim file o {paths.library_dir()}")
+        print("          Chuyen cac thu muc truyen vao do truoc khi doc.")
+
+    with engine.write() as conn:
+        report = scanner.scan(conn, root=library, prune=prune)
+
+    print(f"Đã quét: {report.manga} truyện, {report.chapters} chương, {report.pages} trang")
+    if report.inferred:
+        print(f"  {report.inferred} thư mục không có metadata.json — đã đoán từ cây thư mục")
+    if report.pruned:
+        print(f"  {report.pruned} truyện bị xoá khỏi DB vì không còn thư mục")
+
+    if report.errors:
+        print(f"\n{len(report.errors)} thư mục có vấn đề (các thư mục khác vẫn được quét):")
+        for message in report.errors:
+            print(f"  - {message}")
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     parser = build_parser()
@@ -94,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "doctor-paths":
             return _cmd_doctor_paths(create=args.create)
+        if args.command == "scan":
+            return _cmd_scan(root=args.root, prune=args.prune, reset=args.reset)
         parser.error(f"lệnh không biết: {args.command}")
         return 2
     except MangalibError as exc:
