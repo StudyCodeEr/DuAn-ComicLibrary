@@ -1,8 +1,9 @@
 import sqlite3
-import os
-from utils.system_helper import get_app_dir
 
-DB_FILE = os.path.join(get_app_dir(), "manga_library.db")
+from mangalib import paths
+
+# Mot nguon chan ly duy nhat cho duong dan (quy tac R1 cua ke hoach dai tu).
+DB_FILE = str(paths.db_path())
 
 class DatabaseManager:
     def __init__(self):

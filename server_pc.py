@@ -14,15 +14,16 @@ download_queue = queue.Queue()
 
 app = FastAPI()
 
-# Xác định đường dẫn thư mục gốc theo kiểu mới (fix lỗi .exe onedir)
-from utils.system_helper import get_app_dir
-BASE_DIR = get_app_dir()
-DOWNLOAD_DIR = os.path.join(BASE_DIR, "Downloads")
-DB_PATH = os.path.join(BASE_DIR, "manga_library.db")
+# Duong dan do mangalib.paths quyet dinh - khong phu thuoc cwd (quy tac R1).
+from mangalib import paths
 
-# Tạo thư mục Downloads nếu chưa có
-if not os.path.exists(DOWNLOAD_DIR):
-    os.makedirs(DOWNLOAD_DIR)
+BASE_DIR = str(paths.data_root())
+DOWNLOAD_DIR = str(paths.library_dir())
+DB_PATH = str(paths.db_path())
+
+# Tao thu muc o day la I/O luc import (vi pham R2), nhung StaticFiles ben duoi
+# doi thu muc phai ton tai. Phase 4 thay ca file nay bang api/ nen chi giu tam.
+paths.ensure_data_dirs()
 
 # Mount thư mục ảnh để điện thoại có thể truy cập qua URL (http://ip:8000/images/...)
 app.mount("/images", StaticFiles(directory=DOWNLOAD_DIR), name="images")

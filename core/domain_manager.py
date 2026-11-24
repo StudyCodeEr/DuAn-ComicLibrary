@@ -2,12 +2,13 @@ import json
 import os
 import re
 import unicodedata
-from DrissionPage import ChromiumPage
 
-CONFIG_FILE = "sites.json"
+from mangalib import paths
+
+CONFIG_FILE = str(paths.repo_root() / "sites.json")
 # File mẫu (template) được commit vào repo, KHÔNG chứa địa chỉ thật.
 # File cấu hình thật (sites.json) là file local, đã được .gitignore bỏ qua.
-EXAMPLE_FILE = "sites.example.json"
+EXAMPLE_FILE = str(paths.repo_root() / "sites.example.json")
 
 
 def _load_example_sites():
@@ -76,38 +77,3 @@ def add_new_site(name, url):
     }
     save_sites(sites)
     return True, f"Đã thêm nguồn mới: {name}"
-
-def check_and_update_domain(site_key, browser: ChromiumPage):
-    """
-    Hàm tự động kiểm tra xem Web có đổi Domain (Redirect) không.
-    """
-    sites = load_sites()
-    if site_key not in sites: return None
-    
-    current_url = sites[site_key]["url"]
-    
-    try:
-        # 1. Truy cập trang
-        browser.get(current_url)
-        
-        # 2. Lấy URL thực tế
-        real_url_raw = browser.url
-        
-        # 3. Làm sạch URL (xóa dấu / ở cuối) để so sánh
-        current_clean = current_url.rstrip("/")
-        real_clean = real_url_raw.rstrip("/") # [ĐÃ SỬA LỖI]: Định nghĩa biến real_clean ở đây
-
-        # 4. So sánh domain (bỏ qua http/https)
-        if current_clean.split("://")[-1] != real_clean.split("://")[-1]:
-            print(f"🔄 Phát hiện đổi Domain! {current_clean} -> {real_clean}")
-            
-            # Cập nhật vào file config
-            sites[site_key]["url"] = real_clean
-            save_sites(sites)
-            return real_clean
-            
-        return current_clean
-
-    except Exception as e:
-        print(f"⚠️ Lỗi check domain: {e}")
-        return current_url
