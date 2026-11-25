@@ -17,6 +17,7 @@ __all__ = [
     "ConfigError",
     "Forbidden",
     "MangalibError",
+    "NetworkLost",
     "NoPagesFound",
     "NotAnImage",
     "PageFetchError",
@@ -87,6 +88,14 @@ class MetadataError(MangalibError):
     def __init__(self, path: object, reason: str) -> None:
         super().__init__(f"{path}: {reason}")
         self.path = path
+
+
+class NetworkLost(MangalibError):
+    """Mất kết nối mạng giữa chừng.
+
+    Khác hẳn lỗi HTTP: thử lại cũng vô ích và vòng cuộn sẽ treo cho tới hết giờ,
+    nên phải dừng cả việc tải thay vì lặng lẽ ghi chương thiếu ảnh.
+    """
 
 
 class SourceNotFound(MangalibError):

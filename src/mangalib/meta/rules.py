@@ -41,6 +41,8 @@ class ScrollRule(BaseModel):
     idle_ms: int = 800
     max_ms: int = 30_000
     step_px: int = 2_000
+    settle_ms: int = 15_000
+    """Giu them toi da bao lau sau khi tuong da xong, de bat not dot nap cuoi."""
 
 
 class PagesRule(BaseModel):

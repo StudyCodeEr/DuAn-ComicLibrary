@@ -25,6 +25,7 @@ from mangalib.db import (
 from mangalib.db.models import Author, Chapter, Manga, Page
 from mangalib.download import fetcher
 from mangalib.download.images import make_thumbnail, sniff_ext
+from mangalib.errors import NetworkLost
 from mangalib.library import metadata
 from mangalib.meta import GenericSource, HttpClient, MangaMeta, discover
 
@@ -175,6 +176,12 @@ def download_manga(
                 label = f"[{position}/{len(todo)}] {ref.title[:40]}"
                 try:
                     grab = browser.grab_chapter(ref.url, rule)
+                except NetworkLost as exc:
+                    # Mất mạng thì chương sau cũng hỏng y hệt: dừng hẳn, đừng
+                    # ghi ra một loạt chương thiếu ảnh rồi để người dùng tự đoán.
+                    report.errors.append(f"{ref.title}: {exc}")
+                    _emit(on_progress, "error", f"{label}: {exc}. Đã dừng tải.")
+                    return report
                 except Exception as exc:  # noqa: BLE001 - một chương lỗi không dừng cả truyện
                     report.errors.append(f"{ref.title}: {exc}")
                     _emit(on_progress, "error", f"{label}: {exc}")
@@ -184,16 +191,21 @@ def download_manga(
                 # neu khong, cuon thieu se cho saved == expected va bi danh 'complete' sai.
                 expected = max(grab.declared_total, len(grab.image_urls))
                 chapter_dir = folder / dir_name
-                outcome = fetcher.download_images(
-                    grab.image_urls,
-                    chapter_dir,
-                    referer=ref.url,
-                    cookies=grab.cookies,
-                    user_agent=grab.user_agent,
-                    concurrency=rule.request.concurrency,
-                    min_bytes=rule.filters.min_bytes,
-                    image_format=config.load().image_format,
-                )
+                try:
+                    outcome = fetcher.download_images(
+                        grab.image_urls,
+                        chapter_dir,
+                        referer=ref.url,
+                        cookies=grab.cookies,
+                        user_agent=grab.user_agent,
+                        concurrency=rule.request.concurrency,
+                        min_bytes=rule.filters.min_bytes,
+                        image_format=config.load().image_format,
+                    )
+                except NetworkLost as exc:
+                    report.errors.append(f"{ref.title}: {exc}")
+                    _emit(on_progress, "error", f"{label}: {exc}. Đã dừng tải.")
+                    return report
 
                 with engine.write() as conn:
                     chapter_id = chapter_repo.upsert(
@@ -223,10 +235,15 @@ def download_manga(
                 report.pages_saved += outcome.total
                 report.pages_expected += expected
                 report.errors.extend(f"{ref.title}: {e}" for e in outcome.errors)
+                thieu = ""
+                if outcome.missing:
+                    dau = ", ".join(str(n) for n in outcome.missing[:8])
+                    them = "…" if len(outcome.missing) > 8 else ""
+                    thieu = f" — thiếu trang {dau}{them}"
                 _emit(
                     on_progress,
                     "pages",
-                    f"{label}: {outcome.total}/{expected} trang ({status})",
+                    f"{label}: {outcome.total}/{expected} trang ({status}){thieu}",
                 )
 
     with engine.read_only() as conn:

@@ -16,7 +16,7 @@ import time
 from dataclasses import dataclass, field
 
 from mangalib import paths
-from mangalib.errors import ChallengeRequired, NoPagesFound
+from mangalib.errors import ChallengeRequired, NetworkLost, NoPagesFound
 from mangalib.meta.rules import SiteRule
 
 __all__ = ["AD_MARKERS", "BrowserSession", "GrabResult"]
@@ -42,6 +42,10 @@ _COLLECT_JS = """
   return {
     items,
     declared: all.length,
+    // `complete` false nghia la anh VAN DANG TAI. Khong co so nay thi "so anh
+    // khong tang" bi hieu nham la da xong, trong khi thuc ra dang cho mang.
+    loading: [...all].filter((img) => !img.complete).length,
+    online: navigator.onLine,
     atBottom: (window.scrollY + window.innerHeight) >= (document.body.scrollHeight - 80),
   };
 }
@@ -163,12 +167,19 @@ class BrowserSession:
             declared = int(snapshot["declared"])
             loaded = sum(1 for item in snapshot["items"] if item["w"] > 200)
 
+            if not snapshot.get("online", True):
+                raise NetworkLost("trình duyệt báo mất kết nối mạng giữa chừng")
+
+            dang_tai = int(snapshot.get("loading") or 0)
+
             if declared and loaded >= declared:
                 break
             # `loaded and ...`: 0 ảnh KHÔNG BAO GIỜ là trạng thái kết thúc. Lúc trang
             # vừa load, document còn ngắn nên atBottom đã True ngay, và nếu tính 0 là
             # "đứng yên" thì vòng lặp thoát sau ~5 giây với 0 ảnh.
-            if loaded and loaded == loaded_count:
+            # `not dang_tai`: còn ảnh đang tải thì "số ảnh không tăng" chỉ là đang
+            # chờ mạng, không phải đã hết trang.
+            if loaded and loaded == loaded_count and not dang_tai:
                 stalled += 1
                 if snapshot["atBottom"] and stalled >= 6:
                     break
@@ -179,11 +190,42 @@ class BrowserSession:
             page.evaluate(f"window.scrollBy(0, {pages_rule.scroll.step_px})")
             time.sleep(idle)
 
+        loaded_count = self._giu_them(page, selector, pages_rule, loaded_count)
         logger.info(
             "render được %d/%d trang", loaded_count, int(snapshot.get("declared") or 0)
         )
         final = page.evaluate(_COLLECT_JS, selector)
         return final["items"], int(final["declared"])
+
+    def _giu_them(self, page, selector: str, pages_rule, loaded_count: int) -> int:
+        """Giữ trang thêm tối đa `settle_ms` sau khi tưởng đã xong.
+
+        Reader nạp ảnh theo từng đợt. Dừng ngay lúc số ảnh vừa đứng yên là bỏ nốt
+        đợt cuối. Nhưng KHÔNG giữ cứng đủ 15 giây mỗi chương — với 8 chương thì đó
+        là hai phút chờ vô ích: thoát ngay khi không còn ảnh nào đang tải và số ảnh
+        không đổi qua hai nhịp liền.
+        """
+        han = time.monotonic() + pages_rule.scroll.settle_ms / 1000
+        yen = 0
+        while time.monotonic() < han:
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(0.5)
+            snap = page.evaluate(_COLLECT_JS, selector)
+            if not snap.get("online", True):
+                raise NetworkLost("trình duyệt báo mất kết nối mạng giữa chừng")
+
+            loaded = sum(1 for item in snap["items"] if item["w"] > 200)
+            if loaded > loaded_count:
+                logger.info("giữ thêm bắt được %d trang nữa", loaded - loaded_count)
+                loaded_count = loaded
+                yen = 0
+            elif int(snap.get("loading") or 0) == 0:
+                yen += 1
+                if yen >= 2:
+                    break
+            else:
+                yen = 0
+        return loaded_count
 
     @staticmethod
     def _filter(found: list[dict], rule: SiteRule) -> list[str]:

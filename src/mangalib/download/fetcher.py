@@ -12,6 +12,7 @@ from curl_cffi import requests as curl_requests
 from curl_cffi.requests.errors import RequestsError
 
 from mangalib.download.images import convert, sniff_ext
+from mangalib.errors import NetworkLost
 
 __all__ = ["FetchOutcome", "download_images"]
 
@@ -27,6 +28,8 @@ class FetchOutcome:
     skipped: int = 0
     files: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    missing: list[int] = field(default_factory=list)
+    """Số trang (1-based) không lấy được — để báo ĐÚNG trang nào thiếu."""
 
     @property
     def total(self) -> int:
@@ -70,6 +73,21 @@ def _existing_file(chapter_dir: Path, stem: str, min_bytes: int) -> Path | None:
     return None
 
 
+_NGUONG_MAT_MANG = 5
+
+
+def _con_mang(url: str) -> bool:
+    """Máy chủ ảnh còn vào được không. Dùng để phân biệt mất mạng với lỗi lẻ tẻ."""
+    if not url:
+        return False
+    try:
+        with curl_requests.Session() as session:
+            session.get(url, timeout=6, stream=True).close()
+    except (RequestsError, OSError):
+        return False
+    return True
+
+
 def download_images(
     urls: list[str],
     chapter_dir: Path,
@@ -87,6 +105,7 @@ def download_images(
     outcome = FetchOutcome()
     pool = _SessionPool(cookies or {}, user_agent)
     lock = threading.Lock()
+    mang_hong: list[int] = []
 
     def worker(index_url: tuple[int, str]) -> None:
         index, url = index_url
@@ -136,12 +155,37 @@ def download_images(
 
         with lock:
             outcome.errors.append(f"trang {index + 1}: {error}")
+            outcome.missing.append(index + 1)
+            if error and error.startswith("lỗi mạng"):
+                mang_hong.append(index)
+
+    def chay(cong_viec: list[tuple[int, str]]) -> None:
+        with ThreadPoolExecutor(max_workers=max(1, concurrency)) as executor:
+            list(executor.map(worker, cong_viec))
 
     try:
-        with ThreadPoolExecutor(max_workers=max(1, concurrency)) as executor:
-            list(executor.map(worker, enumerate(urls)))
+        chay(list(enumerate(urls)))
+
+        # Mat mang thi thu lai cung vo ich, va de chuong sau tai tiep chi tao ra
+        # mot loat chuong thieu anh. Dung han de nguoi dung biet ma noi lai mang.
+        if len(mang_hong) >= _NGUONG_MAT_MANG and not _con_mang(urls[0] if urls else ""):
+            raise NetworkLost(
+                f"{len(mang_hong)} trang lỗi mạng liên tiếp và không còn vào được "
+                "máy chủ ảnh — đã dừng, hãy kiểm tra kết nối rồi tải lại"
+            )
+
+        # Mot luot thu lai CHI nhung trang con thieu. Loi mang chop nhoang rat hay
+        # gap; khong co luot nay thi chuong bi danh thieu anh oan.
+        if outcome.missing:
+            thieu = sorted(set(outcome.missing))
+            logger.info("thử lại %d trang còn thiếu: %s", len(thieu), thieu[:12])
+            outcome.errors.clear()
+            outcome.missing.clear()
+            mang_hong.clear()
+            chay([(i - 1, urls[i - 1]) for i in thieu])
     finally:
         pool.close()
 
     outcome.files.sort()
+    outcome.missing.sort()
     return outcome
