@@ -30,6 +30,8 @@ class FetchOutcome:
     errors: list[str] = field(default_factory=list)
     missing: list[int] = field(default_factory=list)
     """Số trang (1-based) không lấy được — để báo ĐÚNG trang nào thiếu."""
+    rejected: int = 0
+    """URL hoá ra không phải trang truyện. KHÁC `missing`: xem ghi chú ở worker."""
 
     @property
     def total(self) -> int:
@@ -154,6 +156,12 @@ def download_images(
                 threading.Event().wait(0.4 * 2**attempt)
 
         with lock:
+            # Mot URL hoa ra la spacer 300 byte hay HTML gia dang anh thi KHONG
+            # phai "trang bi thieu" - no chua bao gio la trang truyen. Dem rieng,
+            # neu khong thi chuong vinh vien mang nhan 'thieu anh' vi mot spacer.
+            if error and error.startswith(("ảnh quá nhỏ", "dữ liệu không phải ảnh")):
+                outcome.rejected += 1
+                return
             outcome.errors.append(f"trang {index + 1}: {error}")
             outcome.missing.append(index + 1)
             if error and error.startswith("lỗi mạng"):

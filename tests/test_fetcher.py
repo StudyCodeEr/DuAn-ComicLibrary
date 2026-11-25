@@ -102,8 +102,11 @@ def test_bao_dung_so_trang_con_thieu(tmp_path, monkeypatch, anh):
     assert outcome.missing == [2]
 
 
-def test_anh_qua_nho_van_bi_tu_choi(tmp_path, monkeypatch, anh):
-    """Ngưỡng byte vẫn phải chặn pixel theo dõi và phản hồi bị cắt ngang."""
+def test_anh_qua_nho_bi_tu_choi_nhung_khong_tinh_la_trang_thieu(tmp_path, monkeypatch, anh):
+    """Spacer 300 byte không phải "trang bị thiếu" — nó chưa bao giờ là trang.
+
+    Gặp thật: hai chương bị đánh `partial` vĩnh viễn chỉ vì một spacer ở cuối.
+    """
     session = _SessionGia({"https://cdn.test/1.png": [_PhanHoi(200, anh)]})
     _cam_pool(monkeypatch, session)
 
@@ -116,4 +119,5 @@ def test_anh_qua_nho_van_bi_tu_choi(tmp_path, monkeypatch, anh):
     )
 
     assert outcome.saved == 0
-    assert outcome.missing == [1]
+    assert outcome.rejected == 1
+    assert outcome.missing == [], "bị từ chối khác hẳn bị thiếu"

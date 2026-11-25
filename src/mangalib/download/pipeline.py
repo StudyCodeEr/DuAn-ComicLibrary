@@ -207,6 +207,14 @@ def download_manga(
                     _emit(on_progress, "error", f"{label}: {exc}. Đã dừng tải.")
                     return report
 
+                # Tru di nhung URL hoa ra khong phai trang truyen (spacer 300 byte).
+                # Phai tru TRUOC khi ghi DB, neu khong chuong bi danh 'thieu anh'
+                # vinh vien chi vi mot cai spacer o cuoi chuong.
+                # Chi tru khi `expected` chinh la so URL ta dem duoc; khi reader tu
+                # khai bao so trang thi con so do da sach roi.
+                if expected == len(grab.image_urls):
+                    expected = max(1, expected - outcome.rejected)
+
                 with engine.write() as conn:
                     chapter_id = chapter_repo.upsert(
                         conn,

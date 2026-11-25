@@ -376,7 +376,10 @@ h1.page {
 .count { color: var(--muted); font-size: var(--fs-sm); padding: 0 var(--gap) 8px; }
 
 /* ---------- trình đọc ---------- */
-.reader .pages { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+/* KHONG co khoang cach giua cac trang: truyen dai (webtoon) duoc cat thanh lat,
+   mot hinh ve lien thuong nam vat qua hai lat - ho mot khe 2px la hinh bi dut.
+   Moi anh deu bi ep cung chieu rong nen chung khop mep nhau. */
+.reader .pages { display: flex; flex-direction: column; align-items: center; gap: 0; }
 .reader .pages img {
   width: min(var(--page-width), 100%);
   height: auto;
