@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import socket
+from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from pydantic import BaseModel
 
 from mangalib import config, paths
 from mangalib.api.deps import require_local
+from mangalib.config import AppConfig, ImageFormat
 
 router = APIRouter(dependencies=[Depends(require_local)])
 
@@ -37,6 +40,40 @@ def get_settings() -> dict:
         "lan_token": cfg.lan_token,
         "lan_ips": _lan_ips(),
         "data_root": str(paths.data_root()),
+        "library_dir": str(paths.library_dir()),
+        # Gia tri THO de o nhap hien dung cai nguoi dung da dat, khong phai duong
+        # dan da giai ra - neu khong, bo trong se bi ghi de thanh duong dan mac dinh.
+        "library_override": cfg.library_override,
+    }
+
+
+class SettingsIn(BaseModel):
+    """Chỉ những trường người dùng sửa được từ giao diện."""
+
+    image_format: ImageFormat | None = None
+    library_override: str | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+@router.patch("/settings")
+def update_settings(payload: SettingsIn) -> dict:
+    """Ghi cấu hình. Router này đã chỉ cho localhost nên máy khác không sửa được."""
+    data = config.load().model_dump()
+    data.update(payload.model_dump(exclude_none=True))
+    updated = AppConfig(**data)
+
+    if updated.library_override:
+        folder = Path(updated.library_override).expanduser()
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise HTTPException(400, f"không dùng được thư mục này: {exc}") from exc
+
+    config.save(updated)
+    return {
+        "image_format": updated.image_format,
+        "library_override": updated.library_override,
         "library_dir": str(paths.library_dir()),
     }
 

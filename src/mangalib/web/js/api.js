@@ -54,6 +54,8 @@ export const api = {
   createJob: (url) => request("/jobs", { method: "POST", body: JSON.stringify({ url }) }),
   cancelJob: (id) => request(`/jobs/${id}`, { method: "DELETE" }),
   settings: () => request("/settings"),
+  saveSettings: (body) =>
+    request("/settings", { method: "PATCH", body: JSON.stringify(body) }),
 };
 
 export function subscribeEvents(onEvent) {
@@ -113,8 +115,9 @@ export function el(tag, attrs = {}, children = []) {
 }
 
 export function markCurrentNav() {
+  // "/" phuc vu downloads.html, nen tab sang len phai la Tai ve chu khong phai Thu vien.
   const here = location.pathname.endsWith("/")
-    ? "index.html"
+    ? "downloads.html"
     : location.pathname.split("/").pop();
   for (const link of document.querySelectorAll(".nav a")) {
     if (link.getAttribute("href").split("?")[0] === here) {

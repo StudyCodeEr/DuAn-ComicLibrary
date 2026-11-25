@@ -4,6 +4,10 @@ import { api, el, markCurrentNav } from "./api.js";
 markCurrentNav();
 
 const infoBox = document.getElementById("info");
+const libPath = document.getElementById("libpath");
+const imgFormat = document.getElementById("imgfmt");
+const saveButton = document.getElementById("save");
+const saveMessage = document.getElementById("savemsg");
 const lanBox = document.getElementById("lan");
 const qrImage = document.getElementById("qr");
 
@@ -26,6 +30,9 @@ api
       ["Token", `${data.lan_token.slice(0, 6)}… (đã nhúng trong QR)`],
     ]);
 
+    libPath.value = data.library_override || "";
+    imgFormat.value = data.image_format;
+
     pairs(infoBox, [
       ["Thư mục dữ liệu", data.data_root],
       ["Thư viện truyện", data.library_dir],
@@ -36,6 +43,30 @@ api
   .catch((error) => {
     pairs(infoBox, [["Lỗi", error.message]]);
   });
+
+saveButton.addEventListener("click", async () => {
+  saveButton.disabled = true;
+  saveMessage.textContent = "Đang lưu…";
+  try {
+    const saved = await api.saveSettings({
+      library_override: libPath.value.trim(),
+      image_format: imgFormat.value,
+    });
+    saveMessage.textContent = `Đã lưu. Truyện sẽ lưu vào: ${saved.library_dir}`;
+    // Doc lai de o thong tin ben duoi khop voi cai vua ghi, khong phai tai lai trang.
+    const fresh = await api.settings();
+    pairs(infoBox, [
+      ["Thư mục dữ liệu", fresh.data_root],
+      ["Thư viện truyện", fresh.library_dir],
+      ["Định dạng ảnh", fresh.image_format === "original" ? "giữ nguyên bản gốc" : fresh.image_format],
+      ["Tải song song", `${fresh.concurrency} ảnh mỗi lúc`],
+    ]);
+  } catch (error) {
+    saveMessage.textContent = `Không lưu được: ${error.message}`;
+  } finally {
+    saveButton.disabled = false;
+  }
+});
 
 const themeButton = document.getElementById("theme");
 const saved = localStorage.getItem("mlib.theme");

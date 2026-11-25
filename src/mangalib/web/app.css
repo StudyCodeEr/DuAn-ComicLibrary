@@ -154,6 +154,9 @@ button.primary {
 }
 button.ghost { background: transparent; }
 button.iconbtn { padding: 7px; }
+.readerbar button.iconbtn { padding: 12px; }
+.readerbar select,
+.readerbar input { min-height: 38px; }
 
 /* Nut dang the <a> (tai file, mo link). Co class that nen khong phai nhan ban
    button.primary bang style= inline nhu truoc. */
@@ -372,9 +375,12 @@ h1.page {
   position: fixed;
   inset: auto 0 0 0;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
-  padding: 9px var(--gap);
+  /* To hon han ban dau (9px): day la thanh dieu khien duy nhat khi dang doc,
+     va tren dien thoai no phai du lon de bam trung bang ngon tay. */
+  padding: 16px var(--gap);
+  min-height: 56px;
   background: var(--ground);
   border-top: 1px solid var(--line);
   backdrop-filter: none;
@@ -479,8 +485,8 @@ body.downloads,
 body.reader {
   background-image:
     linear-gradient(
-      color-mix(in srgb, var(--ground) 74%, transparent),
-      color-mix(in srgb, var(--ground) 90%, transparent)
+      color-mix(in srgb, var(--ground) 30%, transparent),
+      color-mix(in srgb, var(--ground) 62%, transparent)
     ),
     url("/assets/bg-dark.jpg");
   background-size: cover;
@@ -493,8 +499,8 @@ html[data-theme="light"] body.downloads,
 html[data-theme="light"] body.reader {
   background-image:
     linear-gradient(
-      color-mix(in srgb, var(--ground) 74%, transparent),
-      color-mix(in srgb, var(--ground) 90%, transparent)
+      color-mix(in srgb, var(--ground) 30%, transparent),
+      color-mix(in srgb, var(--ground) 62%, transparent)
     ),
     url("/assets/bg-light.jpg");
 }

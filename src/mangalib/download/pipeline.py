@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from mangalib import naming, paths
+from mangalib import config, naming, paths
 from mangalib.db import (
     author_repo,
     chapter_repo,
@@ -193,6 +193,7 @@ def download_manga(
                     user_agent=grab.user_agent,
                     concurrency=rule.request.concurrency,
                     min_bytes=rule.filters.min_bytes,
+                    image_format=config.load().image_format,
                 )
 
                 with engine.write() as conn:

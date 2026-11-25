@@ -74,3 +74,30 @@ def test_link_khac_van_duoc_nhan(client):
     )
 
     assert response.status_code == 202
+
+
+def test_luu_duoc_dinh_dang_anh_va_duong_dan_thu_vien(client, tmp_path):
+    """Hai cấu hình này trước đây chỉ hiển thị, không sửa được và cũng không có tác dụng."""
+    kho = tmp_path / "kho-truyen"
+
+    response = client.patch(
+        "/api/v1/settings",
+        json={"image_format": "webp", "library_override": str(kho)},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["image_format"] == "webp"
+    assert kho.is_dir(), "endpoint phải tạo sẵn thư mục người dùng chọn"
+    # Đổi cấu hình phải đổi thật nơi truyện được lưu, không chỉ đổi con số hiển thị.
+    assert paths.library_dir() == kho.resolve()
+
+
+def test_bo_trong_duong_dan_thi_quay_ve_mac_dinh(client, tmp_path):
+    client.patch("/api/v1/settings", json={"library_override": str(tmp_path / "kho")})
+    client.patch("/api/v1/settings", json={"library_override": ""})
+
+    assert paths.library_dir() == paths.data_root() / "library"
+
+
+def test_dinh_dang_anh_khong_hop_le_bi_tu_choi(client):
+    assert client.patch("/api/v1/settings", json={"image_format": "bmp"}).status_code == 422

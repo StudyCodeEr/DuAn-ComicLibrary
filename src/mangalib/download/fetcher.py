@@ -11,7 +11,7 @@ from pathlib import Path
 from curl_cffi import requests as curl_requests
 from curl_cffi.requests.errors import RequestsError
 
-from mangalib.download.images import sniff_ext
+from mangalib.download.images import convert, sniff_ext
 
 __all__ = ["FetchOutcome", "download_images"]
 
@@ -80,6 +80,7 @@ def download_images(
     concurrency: int = 5,
     min_bytes: int = 20_000,
     retries: int = 3,
+    image_format: str = "original",
 ) -> FetchOutcome:
     """Tải danh sách URL vào `chapter_dir`. Tên file là số thứ tự: `001.webp`."""
     chapter_dir.mkdir(parents=True, exist_ok=True)
@@ -119,6 +120,9 @@ def download_images(
                     if len(data) < min_bytes:
                         error = f"ảnh quá nhỏ ({len(data)} byte)"
                         break
+                    converted = convert(data, image_format)
+                    if converted is not None:
+                        data, ext = converted
                     target = chapter_dir / f"{stem}.{ext}"
                     part = target.with_suffix(target.suffix + ".part")
                     part.write_bytes(data)

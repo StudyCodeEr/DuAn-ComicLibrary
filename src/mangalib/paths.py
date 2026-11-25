@@ -101,6 +101,16 @@ def data_root() -> Path:
 
 
 def library_dir() -> Path:
+    """Thư mục chứa truyện. `library_override` trong config trỏ được sang ổ khác.
+
+    Import config muộn chứ không ở đầu file: `config.py` đã import `paths`, nên
+    import ngược ở module scope sẽ thành vòng tròn.
+    """
+    from mangalib import config
+
+    override = config.load().library_override
+    if override:
+        return Path(override).expanduser().resolve()
     return data_root() / "library"
 
 

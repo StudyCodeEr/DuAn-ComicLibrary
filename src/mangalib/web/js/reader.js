@@ -121,33 +121,11 @@ function scheduleSave() {
   }, 900);
 }
 
-/* Chrome lùi đi khi đang đọc, hiện lại khi chạm hoặc khi dừng cuộn — như Mihon
-   và Komga. Trước đây nó đứng cố định suốt và chiếm 96px vĩnh viễn. */
-let chromeTimer = 0;
-function showChrome(autoHide = true) {
-  document.body.dataset.chrome = "shown";
-  clearTimeout(chromeTimer);
-  if (autoHide) {
-    chromeTimer = setTimeout(() => {
-      document.body.dataset.chrome = "hidden";
-    }, 1600);
-  }
-}
-
-window.addEventListener(
-  "scroll",
-  () => {
-    document.body.dataset.chrome = "hidden";
-    clearTimeout(chromeTimer);
-    chromeTimer = setTimeout(() => showChrome(false), 900);
-  },
-  { passive: true },
-);
-
+/* Thanh menu chi doi trang thai khi NGUOI DUNG CHAM, khong tu an theo dong ho va
+   khong phan ung theo cuon: dang doc ma no tu bat tat thi vua giat mat vua kho bam. */
 pagesBox.addEventListener("click", () => {
-  const hidden = document.body.dataset.chrome === "hidden";
-  if (hidden) showChrome();
-  else document.body.dataset.chrome = "hidden";
+  document.body.dataset.chrome =
+    document.body.dataset.chrome === "hidden" ? "shown" : "hidden";
 });
 
 function step(delta) {

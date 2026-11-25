@@ -37,7 +37,8 @@
       Dùng khi một site cần đăng nhập hoặc chặn tự động: mở chương trên trình duyệt của bạn rồi bấm
       nút nổi. Cần Tampermonkey hoặc Violentmonkey.
     </p>
-    <a class="btn primary" href="/static/userscript/mangalib.user.js">Cài userscript</a>
+    <a class="btn primary" href="/static/userscript/mangalib.user.js"
+       download="mangalib.user.js">Tải userscript về máy</a>
   </div>
 
   <div class="panel">
@@ -49,6 +50,32 @@
 
   <div class="panel">
     <h2>Đường dẫn và cấu hình</h2>
+
+    <label class="pos" for="libpath">Thư mục lưu truyện</label>
+    <div class="row">
+      <input id="libpath" class="grow" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Để trống = dùng thư mục mặc định cạnh ứng dụng">
+    </div>
+    <p class="count" style="padding:4px 0 12px">
+      Đổi đường dẫn chỉ ảnh hưởng truyện tải về từ nay. Truyện đã tải vẫn nằm ở thư mục cũ,
+      bạn phải tự chuyển rồi chạy quét lại nếu muốn gộp.
+    </p>
+
+    <label class="pos" for="imgfmt">Định dạng ảnh</label>
+    <div class="row">
+      <select id="imgfmt">
+        <option value="original">Giữ nguyên bản gốc — khuyên dùng</option>
+        <option value="webp">WebP</option>
+        <option value="jpeg">JPEG</option>
+        <option value="png">PNG</option>
+      </select>
+      <button id="save" class="primary">Lưu</button>
+    </div>
+    <p class="count" style="padding:4px 0 12px">
+      Đổi định dạng là mã hoá lại ảnh, file thường phình to hơn và chất lượng giảm một ít.
+    </p>
+
+    <p class="count" id="savemsg" style="padding:0 0 10px"></p>
     <dl class="kv" id="info"></dl>
   </div>
 </main>
