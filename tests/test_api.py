@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from mangalib import paths
 from mangalib.api.app import create_app
 from mangalib.db import engine, job_repo
+from mangalib.jobs.queue import WORKER
 
 
 @pytest.fixture
@@ -64,8 +65,10 @@ def test_dan_lai_link_dang_trong_hang_doi_bi_tu_choi(client):
     assert "hàng đợi" in response.json()["detail"]
 
 
-def test_link_khac_van_duoc_nhan(client):
+def test_link_khac_van_duoc_nhan(client, monkeypatch):
     """Chống trùng không được chặn oan link khác."""
+    # WORKER.submit() gọi start(), tức bật thread tải thật. Test không được đi ra mạng.
+    monkeypatch.setattr(WORKER, "start", lambda: None)
     with engine.write() as conn:
         job_repo.create(conn, "https://example.invalid/truyen/abc")
 
