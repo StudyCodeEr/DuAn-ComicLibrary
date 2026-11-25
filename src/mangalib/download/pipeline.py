@@ -149,11 +149,24 @@ def download_manga(
     if limit:
         todo = todo[:limit]
 
-    _emit(
-        on_progress,
-        "chapters",
-        f"{len(todo)} chương cần tải, {report.chapters_skipped} chương bỏ qua (đã đủ ảnh)",
-    )
+    # Noi du ba con so TRUOC khi tai: co san trong thu vien bao nhieu, link co bao
+    # nhieu, thieu bao nhieu. Nguoi dung can doi chieu de biet co dang tai trung.
+    da_co = "đã có trong thư viện" if slug else "chưa có trong thư viện"
+    if todo:
+        _emit(
+            on_progress,
+            "chapters",
+            f"Truyện {da_co}. Link có {len(meta.chapters)} chương, "
+            f"{report.chapters_skipped} chương đã đủ ảnh, cần tải {len(todo)} chương.",
+        )
+    else:
+        _emit(
+            on_progress,
+            "chapters",
+            f"Truyện {da_co} và không thiếu chương nào "
+            f"({report.chapters_skipped}/{len(meta.chapters)} đã đủ ảnh) — bỏ qua, "
+            f"không mở trình duyệt.",
+        )
 
     if todo:
         from mangalib.pagegrab import BrowserSession
