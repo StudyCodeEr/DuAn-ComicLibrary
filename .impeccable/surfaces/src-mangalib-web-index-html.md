@@ -7,7 +7,7 @@ related_targets: ["src/mangalib/web/reader.html","src/mangalib/web/downloads.htm
 
 Scope: thư viện + trình đọc + hàng đợi tải + cài đặt, phục vụ cùng lúc PC và điện thoại từ một server cục bộ. Visitor mode: Operate.
 
-Audience: một người dùng duy nhất, hai thiết bị quan trọng ngang nhau. Job: duyệt bằng mắt để chọn truyện đọc, trong một thư viện hàng nghìn mục. Phải thấy ngay không cần bấm: đọc tới đâu, số chương/số trang, thể loại. Ràng buộc: tiếng Việt toàn bộ, chạy 100% offline, giữ tên "Manga Local Library" và `app_icon.ico`.
+Audience: một người dùng duy nhất, hai thiết bị quan trọng ngang nhau. Job: duyệt bằng mắt để chọn truyện đọc, trong một thư viện hàng nghìn mục. Phải thấy ngay không cần bấm: đọc tới đâu, số chương/số trang, thể loại. Ràng buộc: tiếng Việt toàn bộ, chạy 100% offline, giữ tên "Comic Library" và `app_icon.ico`.
 
 ## Direction contract
 

@@ -68,7 +68,7 @@ def save(config: AppConfig, path: Path | None = None) -> Path:
     config_file = Path(path) if path is not None else paths.config_path()
     config_file.parent.mkdir(parents=True, exist_ok=True)
 
-    lines = ["# Cấu hình Manga Local Library. File này KHÔNG được commit.", ""]
+    lines = ["# Cấu hình Comic Library. File này KHÔNG được commit.", ""]
     for key, value in config.model_dump().items():
         lines.append(f"{key} = {_toml_value(value)}")
 

@@ -73,7 +73,7 @@ khi toàn bộ nội dung chưa bao giờ rời khỏi máy của người dùng
 
 ## Brand Commitments
 
-- Tên sản phẩm: **Manga Local Library**.
+- Tên sản phẩm: **Comic Library**.
 - Icon: `app_icon.ico` (bắt buộc giữ).
 - Tài sản ảnh có sẵn, bắt buộc giữ: `assets/bg-dark.jpg`, `assets/bg-light.jpg`.
 - **Hướng hình ảnh (người dùng chọn, bền vững):** chuẩn của hạng mục, chơi thẳng — không châm

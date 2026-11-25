@@ -8,7 +8,7 @@ use std::sync::Mutex;
 struct Sidecar(Mutex<Option<Child>>);
 
 fn spawn_backend() -> Option<Child> {
-    Command::new("binaries/MangaLocalLibrary.exe")
+    Command::new("binaries/ComicLibrary.exe")
         .arg("serve")
         .spawn()
         .ok()

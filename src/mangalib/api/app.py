@@ -43,7 +43,7 @@ async def _lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Manga Local Library", version=__version__, lifespan=_lifespan)
+    app = FastAPI(title="Comic Library", version=__version__, lifespan=_lifespan)
     app.include_router(routes_library.router, prefix="/api/v1")
     app.include_router(routes_jobs.router, prefix="/api/v1")
     app.include_router(routes_settings.router, prefix="/api/v1")

@@ -1,5 +1,5 @@
 ---
-name: Manga Local Library
+name: Comic Library
 description: Thư viện truyện cục bộ, phẳng và chia vùng bằng hairline, nơi tiến độ đọc đọc được ngay trên bìa.
 colors:
   ground: "#14161b"
@@ -155,7 +155,7 @@ components:
     height: "240px"
 ---
 
-# Design System: Manga Local Library
+# Design System: Comic Library
 
 ## Overview
 

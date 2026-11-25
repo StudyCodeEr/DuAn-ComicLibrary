@@ -2,7 +2,7 @@
 name = "mangalib-shell"
 version = "3.0.0"
 edition = "2021"
-description = "Vo desktop cho Manga Local Library"
+description = "Vo desktop cho Comic Library"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

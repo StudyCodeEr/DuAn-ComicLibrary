@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Gửi vào Manga Local Library
+// @name         Gửi vào Comic Library
 // @namespace    mangalib
 // @version      1.0.0
 // @description  Gửi danh sách ảnh của chương đang mở về mangalib trên máy này

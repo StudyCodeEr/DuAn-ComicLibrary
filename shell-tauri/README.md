@@ -23,7 +23,7 @@ cargo install tauri-cli
 ## Build
 
 ```powershell
-# 1. Đóng gói backend Python trước (tạo dist/MangaLocalLibrary/)
+# 1. Đóng gói backend Python trước (tạo dist/ComicLibrary/)
 pyinstaller tools/mangalib.spec --noconfirm
 
 # 2. Build vỏ

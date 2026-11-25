@@ -15,7 +15,7 @@ __all__ = ["APP_NAME", "command", "disable", "enable", "is_enabled"]
 
 logger = logging.getLogger(__name__)
 
-APP_NAME = "MangaLocalLibrary"
+APP_NAME = "ComicLibrary"
 _RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 

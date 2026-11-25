@@ -36,7 +36,7 @@ def test_env_override_wins(tmp_path, monkeypatch):
 def test_frozen_uses_exe_dir(tmp_path, monkeypatch):
     """Bản .exe onedir phải ghi data cạnh exe, không vào thư mục tạm _internal."""
     monkeypatch.delenv(paths.ENV_DATA_ROOT, raising=False)
-    exe = tmp_path / "MangaLocalLibrary.exe"
+    exe = tmp_path / "ComicLibrary.exe"
     exe.write_bytes(b"")
     monkeypatch.setattr(paths.sys, "frozen", True, raising=False)
     monkeypatch.setattr(paths.sys, "executable", str(exe))

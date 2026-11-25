@@ -45,5 +45,5 @@ def run_tray(url: str, *, on_open: Callable[[], None], on_quit: Callable[[], Non
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Thoát", lambda icon, *_: (icon.stop(), on_quit())),
     )
-    icon = pystray.Icon("mangalib", _load_icon(), "Manga Local Library", menu)
+    icon = pystray.Icon("mangalib", _load_icon(), "Comic Library", menu)
     icon.run()

@@ -29,7 +29,7 @@ if (!slug) {
 async function start() {
   state.manga = await api.manga(slug);
   titleBox.textContent = state.manga.title;
-  document.title = `${state.manga.title} · Manga Local Library`;
+  document.title = `${state.manga.title} · Comic Library`;
 
   chapterSelect.replaceChildren(
     ...state.manga.chapters.map((chapter) =>
