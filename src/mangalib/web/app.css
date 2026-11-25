@@ -471,3 +471,30 @@ dl.kv dd { margin: 0; word-break: break-all; }
 @media (prefers-reduced-motion: reduce) {
   .reader .topbar, .readerbar { transition: none; }
 }
+
+/* Anh nen di kem app (assets/bg-*.jpg), chi o trang tai va trang doc.
+   Lop gradient phu len tren vi anh chup co vung sang toi bat ky; khong co no
+   thi chu va vien hairline se mat tuong phan o nhung vung sang cua anh. */
+body.downloads,
+body.reader {
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--ground) 74%, transparent),
+      color-mix(in srgb, var(--ground) 90%, transparent)
+    ),
+    url("/assets/bg-dark.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="light"] body.downloads,
+html[data-theme="light"] body.reader {
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--ground) 74%, transparent),
+      color-mix(in srgb, var(--ground) 90%, transparent)
+    ),
+    url("/assets/bg-light.jpg");
+}

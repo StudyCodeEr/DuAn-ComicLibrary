@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from mangalib import __version__, config, paths
 from mangalib.api import discovery, routes_jobs, routes_library, routes_settings
 from mangalib.db import engine
+from mangalib.errors import UnsafePathError
 from mangalib.jobs.queue import WORKER
 
 __all__ = ["create_app"]
@@ -54,7 +55,20 @@ def create_app() -> FastAPI:
 
         @app.get("/", include_in_schema=False)
         def index() -> FileResponse:
-            return FileResponse(web_dir / "index.html")
+            """Tab chinh la TAI TRUYEN, khong phai thu vien: mo app ra la de tai."""
+            return FileResponse(web_dir / "downloads.html")
+
+        @app.get("/assets/{name}", include_in_schema=False)
+        def asset(name: str) -> FileResponse:
+            """Anh nen di kem app. safe_join chan duong dan vuot ra ngoai assets/."""
+            try:
+                target = paths.safe_join(paths.assets_dir(), name)
+            except UnsafePathError as exc:
+                # Khong de lo ra 500: ".." hay duong dan tuyet doi la 404, khong phai loi server.
+                raise HTTPException(404, "tên asset không hợp lệ") from exc
+            if not target.is_file():
+                raise HTTPException(404, f"khong co asset {name}")
+            return FileResponse(target)
 
         @app.get("/favicon.ico", include_in_schema=False)
         def favicon() -> FileResponse:

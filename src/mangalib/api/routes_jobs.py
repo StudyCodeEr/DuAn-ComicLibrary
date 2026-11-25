@@ -32,6 +32,15 @@ class JobIn(BaseModel):
 def create_job(payload: JobIn) -> dict:
     if not payload.url.startswith(("http://", "https://")):
         raise HTTPException(400, "Link phải bắt đầu bằng http:// hoặc https://")
+    # Dan cung mot link nhieu lan thi khong tao thanh nhieu viec: cac viec sau se
+    # tai metadata roi bo qua het chuong, ton cong vo ich va lam ban danh sach.
+    with engine.read_only() as conn:
+        pending = job_repo.list_jobs(conn, active_only=True, limit=200)
+    for existing in pending:
+        if existing.url == payload.url:
+            raise HTTPException(
+                409, f"Link này đã nằm trong hàng đợi (việc #{existing.id}, {existing.state})"
+            )
     job = WORKER.submit(payload.url)
     return {"job_id": job.id, "state": job.state}
 
