@@ -78,6 +78,19 @@ def update_settings(payload: SettingsIn) -> dict:
     }
 
 
+@router.post("/settings/pick-folder")
+def pick_library_folder() -> dict:
+    """Mở hộp thoại chọn thư mục của Windows, trả đường dẫn người dùng chọn.
+
+    Router này đã chỉ cho localhost - hộp thoại bật trên chính máy chạy app, nên
+    điện thoại trong LAN không gọi được.
+    """
+    from mangalib.folder_picker import pick_folder
+
+    cfg = config.load()
+    return {"path": pick_folder(cfg.library_override or str(paths.library_dir()))}
+
+
 @router.get("/settings/qr.svg")
 def pairing_qr(port: int = 8000) -> Response:
     """Mã QR để điện thoại quét một lần là ghép đôi xong."""

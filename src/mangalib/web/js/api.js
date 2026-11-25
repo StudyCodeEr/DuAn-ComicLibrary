@@ -54,6 +54,7 @@ export const api = {
   createJob: (url) => request("/jobs", { method: "POST", body: JSON.stringify({ url }) }),
   cancelJob: (id) => request(`/jobs/${id}`, { method: "DELETE" }),
   settings: () => request("/settings"),
+  pickFolder: () => request("/settings/pick-folder", { method: "POST" }),
   saveSettings: (body) =>
     request("/settings", { method: "PATCH", body: JSON.stringify(body) }),
 };

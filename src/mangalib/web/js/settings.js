@@ -7,6 +7,7 @@ const infoBox = document.getElementById("info");
 const libPath = document.getElementById("libpath");
 const imgFormat = document.getElementById("imgfmt");
 const saveButton = document.getElementById("save");
+const browseButton = document.getElementById("browse");
 const saveMessage = document.getElementById("savemsg");
 const lanBox = document.getElementById("lan");
 const qrImage = document.getElementById("qr");
@@ -43,6 +44,25 @@ api
   .catch((error) => {
     pairs(infoBox, [["Lỗi", error.message]]);
   });
+
+browseButton.addEventListener("click", async () => {
+  // Hop thoai chan cho toi khi nguoi dung dong, nen khoa nut de khong mo chong nhau.
+  browseButton.disabled = true;
+  saveMessage.textContent = "Đang mở hộp thoại chọn thư mục…";
+  try {
+    const { path } = await api.pickFolder();
+    if (path) {
+      libPath.value = path;
+      saveMessage.textContent = "Đã chọn. Bấm Lưu để áp dụng.";
+    } else {
+      saveMessage.textContent = "Bạn đã huỷ, chưa đổi gì.";
+    }
+  } catch (error) {
+    saveMessage.textContent = `Không mở được hộp thoại: ${error.message}`;
+  } finally {
+    browseButton.disabled = false;
+  }
+});
 
 saveButton.addEventListener("click", async () => {
   saveButton.disabled = true;

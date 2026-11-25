@@ -12,6 +12,7 @@
 :root {
   color-scheme: dark;
 
+  --page-max: 1180px;
   --ground: #14161b;
   --surface: #1c1f26;
   --surface-hi: #252932;
@@ -131,6 +132,12 @@ input:focus-visible, select:focus-visible, button:focus-visible, .card:focus-vis
 }
 
 .search { flex: 1 1 240px; max-width: 420px; }
+
+/* Thuoc tinh `hidden` phai thang MOI quy tac display cua ta. `button { display:
+   inline-flex }` ben duoi de len `[hidden]` mac dinh cua trinh duyet, nen
+   `moreButton.hidden = true` khong an duoc gi - nut "Tai them" van hien ngay ca
+   khi thu vien trong. */
+[hidden] { display: none !important; }
 
 button {
   display: inline-flex;
@@ -265,6 +272,22 @@ a.btn:hover { border-color: var(--accent); }
 .chip .n { color: var(--muted); font-size: var(--fs-xs); margin-left: 4px; }
 
 /* ---------- lưới bìa ---------- */
+/* Noi dung khong duoc trai het man hinh rong: dong chu dai qua tam mat thi kho
+   doc, va o man 1440px thi panel cai dat thua mot nua ben phai. Gioi han va can
+   giua, de anh nen lo ra hai ben lam khung thay vi bi panel che kin.
+
+   `body > .count` chu khong phai `.count`: trong panel cung co .count, ma
+   `margin-inline: auto` tren mot flex item se bat no co lai va can giua - dong
+   "Chua co viec nao." se nhay vao giua panel. */
+main,
+body > .filters,
+body > .count,
+.continue > h2,
+.continue > .strip {
+  max-width: var(--page-max);
+  margin-inline: auto;
+}
+
 main { padding: var(--gap); }
 
 h1.page {
@@ -418,8 +441,16 @@ h1.page {
 .job .state[data-s="needs_login"] { color: var(--warn); }
 .job .err { color: var(--bad); font-size: var(--fs-sm); margin-top: 4px; }
 
+.log:empty::before {
+  content: "Chưa có nhật ký. Dán một link ở trên để bắt đầu.";
+  color: var(--muted);
+}
+
 .log {
-  height: 240px;
+  /* Cao toi thieu thay vi cao co dinh: truoc day khung rong van chiem 240px,
+     nhin nhu mot o trong bi hong. */
+  min-height: 92px;
+  max-height: 320px;
   overflow: auto;
   background: var(--ground);
   border: 1px solid var(--line);
