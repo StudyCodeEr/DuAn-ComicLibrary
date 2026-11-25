@@ -57,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="tạo luôn cây thư mục dữ liệu",
     )
 
+    probe_cmd = sub.add_parser(
+        "probe", help="thử lấy metadata của một link bằng HTTP thuần (không mở browser)"
+    )
+    probe_cmd.add_argument("url")
+
     scan_cmd = sub.add_parser(
         "scan",
         help="dựng lại cơ sở dữ liệu từ thư viện trên đĩa",
@@ -145,6 +150,37 @@ def _cmd_scan(root: str | None, prune: bool, reset: bool = False) -> int:
     return 0
 
 
+def _cmd_probe(url: str) -> int:
+    from mangalib.errors import ChallengeRequired, MangalibError
+    from mangalib.meta import GenericSource, HttpClient, rule_for_url
+
+    rule = rule_for_url(url)
+    if rule is None:
+        print("Không có rule nào khớp domain này. Thêm một file .yml vào data/sites/")
+        return 1
+
+    print(f"Rule: {rule.key} ({rule.name}) — domain: {', '.join(rule.domains)}")
+    try:
+        with HttpClient(min_delay_ms=rule.request.min_delay_ms) as http:
+            meta = GenericSource(rule).fetch_manga(http, url)
+    except ChallengeRequired:
+        print("Site trả về trang challenge: tầng HTTP không qua được.")
+        print("→ Phải dùng tầng browser hoặc userscript cho site này.")
+        return 2
+    except MangalibError as exc:
+        print(f"Không lấy được: {exc}")
+        return 1
+
+    print(f"URL cuối: {meta.url}")
+    for line in meta.describe():
+        print(f"  {line}")
+    for chapter in meta.chapters[:5]:
+        print(f"    - số={chapter.number} {chapter.title[:46]!r}")
+    if len(meta.chapters) > 5:
+        print(f"    ... và {len(meta.chapters) - 5} chương nữa")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     parser = build_parser()
@@ -160,6 +196,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "doctor-paths":
             return _cmd_doctor_paths(create=args.create)
+        if args.command == "probe":
+            return _cmd_probe(args.url)
         if args.command == "scan":
             return _cmd_scan(root=args.root, prune=args.prune, reset=args.reset)
         parser.error(f"lệnh không biết: {args.command}")
