@@ -68,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     dl.add_argument("--headful", action="store_true", help="hiện cửa sổ browser")
     dl.add_argument("--limit", type=int, help="chỉ tải N chương đầu trong số cần tải")
 
+    serve_cmd = sub.add_parser("serve", help="chạy server: web UI + API cho điện thoại")
+    serve_cmd.add_argument("--host", default="0.0.0.0")
+    serve_cmd.add_argument("--port", type=int, default=8000)
+
     scan_cmd = sub.add_parser(
         "scan",
         help="dựng lại cơ sở dữ liệu từ thư viện trên đĩa",
@@ -221,6 +225,17 @@ def _cmd_download(url: str, dry_run: bool, headful: bool, limit: int | None) -> 
     return 0 if report.ok else 1
 
 
+def _cmd_serve(host: str, port: int) -> int:
+    import uvicorn
+
+    from mangalib.api import create_app
+
+    print(f"Web UI: http://127.0.0.1:{port}")
+    print(f"Điện thoại cùng LAN: http://<IP-máy-này>:{port} (quét QR trong Cài đặt)")
+    uvicorn.run(create_app(), host=host, port=port, log_config=None, log_level="warning")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     parser = build_parser()
@@ -240,6 +255,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_probe(args.url)
         if args.command == "download":
             return _cmd_download(args.url, args.dry_run, args.headful, args.limit)
+        if args.command == "serve":
+            return _cmd_serve(args.host, args.port)
         if args.command == "scan":
             return _cmd_scan(root=args.root, prune=args.prune, reset=args.reset)
         parser.error(f"lệnh không biết: {args.command}")

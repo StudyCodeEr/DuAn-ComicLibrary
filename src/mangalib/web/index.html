@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thư viện · Manga Local Library</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Manga <span>Local Library</span></div>
+  <input id="q" class="search" type="text" placeholder="Tìm tên truyện hoặc tên tác giả…" autocomplete="off">
+  <nav class="nav">
+    <a href="index.html">Thư viện</a>
+    <a href="downloads.html">Tải về</a>
+    <a href="settings.html">Cài đặt</a>
+  </nav>
+</header>
+
+<div class="filters" id="filters"></div>
+<div class="count" id="count">Đang tải…</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div style="text-align:center;padding:24px 0">
+    <button id="more" class="ghost" hidden>Tải thêm</button>
+  </div>
+</main>
+
+<script type="module" src="/static/js/library.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cài đặt · Manga Local Library</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Manga <span>Local Library</span></div>
+  <nav class="nav">
+    <a href="index.html">Thư viện</a>
+    <a href="downloads.html">Tải về</a>
+    <a href="settings.html">Cài đặt</a>
+  </nav>
+</header>
+
+<main>
+  <div class="panel">
+    <h2>Ghép đôi điện thoại</h2>
+    <p class="count" style="padding:0 0 10px">
+      Quét một lần là xong: điện thoại được đặt cookie và dùng mãi. Máy này không cần token.
+    </p>
+    <div class="row" style="align-items:flex-start">
+      <img id="qr" src="/api/v1/settings/qr.svg" alt="Mã QR ghép đôi" width="190" height="190"
+           style="background:#fff;border-radius:8px;padding:8px">
+      <dl class="kv" id="lan"></dl>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Gửi vào thư viện từ trình duyệt</h2>
+    <p class="count" style="padding:0 0 10px">
+      Dùng khi một site cần đăng nhập hoặc chặn tự động: mở chương trên trình duyệt của bạn rồi bấm
+      nút nổi. Cần Tampermonkey hoặc Violentmonkey.
+    </p>
+    <a href="/static/userscript/mangalib.user.js">
+      <button class="primary">Cài userscript</button>
+    </a>
+  </div>
+
+  <div class="panel">
+    <h2>Giao diện</h2>
+    <div class="row">
+      <button id="theme">Đổi sáng / tối</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Đường dẫn và cấu hình</h2>
+    <dl class="kv" id="info"></dl>
+  </div>
+</main>
+
+<script type="module" src="/static/js/settings.js"></script>
+</body>
+</html>

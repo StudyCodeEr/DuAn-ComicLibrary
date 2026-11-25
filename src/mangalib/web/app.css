@@ -1,0 +1,267 @@
+/* Manga Local Library — hệ thống hình ảnh.
+ *
+ * Hướng đã chốt: chuẩn của hạng mục, chơi thẳng. Thước đo thi công: Mihon và Komga.
+ * Mọi màu nằm trong khối :root này — đổi theme là đổi đúng một chỗ, thay cho 43 mã
+ * màu hex rải rác trong bản Flet cũ.
+ *
+ * Không bóng đổ, không gradient, không glass: phân vùng bằng đường kẻ hairline.
+ * Font dùng system stack nên đủ dấu tiếng Việt và không tải gì từ Internet.
+ */
+
+:root {
+  --ground: #0f172a;
+  --surface: #1e293b;
+  --surface-hi: #243449;
+  --line: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #06b6d4;
+  --accent-ink: #052e35;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+
+  --gap: 16px;
+  --radius: 8px;
+  --cover-min: 148px;
+  --page-width: 900px; /* reader: zoom đổi đúng biến này */
+
+  --font: "Segoe UI", system-ui, -apple-system, "Noto Sans", Arial, sans-serif;
+}
+
+:root[data-theme="light"] {
+  --ground: #f6f7f9;
+  --surface: #ffffff;
+  --surface-hi: #eef1f5;
+  --line: #d4dae2;
+  --text: #16202e;
+  --muted: #5b6673;
+  --accent-ink: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ---------- thanh trên ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: var(--gap);
+  align-items: center;
+  padding: 12px var(--gap);
+  background: var(--ground);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.brand span { color: var(--accent); }
+
+.nav { display: flex; gap: 4px; margin-left: auto; }
+
+.nav a {
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+.nav a:hover { background: var(--surface); color: var(--text); }
+.nav a[aria-current="page"] { color: var(--text); border-color: var(--line); background: var(--surface); }
+
+input[type="text"], input[type="url"], input[type="number"], select {
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  min-width: 0;
+}
+input:focus-visible, select:focus-visible, button:focus-visible, .card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.search { flex: 1 1 320px; max-width: 460px; }
+
+button {
+  padding: 8px 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+button:hover { background: var(--surface-hi); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.ghost { background: transparent; }
+
+/* ---------- bộ lọc ---------- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px var(--gap);
+  border-bottom: 1px solid var(--line);
+}
+
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.chip:hover { color: var(--text); }
+.chip[data-state="1"] { border-color: var(--ok); color: var(--ok); }
+.chip[data-state="2"] { border-color: var(--bad); color: var(--bad); text-decoration: line-through; }
+.chip .n { color: var(--muted); font-size: 11px; margin-left: 4px; }
+
+/* ---------- lưới bìa ---------- */
+main { padding: var(--gap); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--cover-min), 1fr));
+  gap: var(--gap);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.card:hover { border-color: var(--accent); }
+
+.cover {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  background: var(--surface-hi);
+}
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover .empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Tiến độ đọc: dải 2px sát đáy bìa, đọc được ở cỡ thumbnail. */
+.progress {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+}
+.progress i { display: block; height: 100%; background: var(--accent); }
+
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  border: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.card .meta { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
+.card .title { font-size: 13px; font-weight: 600; line-height: 1.35; max-height: 2.7em; overflow: hidden; }
+.card .by { font-size: 12px; color: var(--muted); }
+.card .by a:hover { color: var(--accent); }
+.card .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.card .tags span { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 6px; }
+
+.empty-state { color: var(--muted); padding: 48px 0; text-align: center; }
+.count { color: var(--muted); font-size: 13px; padding: 0 var(--gap) 8px; }
+
+/* ---------- trình đọc ---------- */
+.reader { background: var(--ground); }
+.reader .pages { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 96px; }
+.reader .pages img {
+  width: min(var(--page-width), 100%);
+  height: auto;
+  display: block;
+  background: var(--surface-hi);
+}
+
+.readerbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px var(--gap);
+  background: color-mix(in srgb, var(--ground) 92%, transparent);
+  border-top: 1px solid var(--line);
+  backdrop-filter: none;
+}
+.readerbar .spacer { flex: 1; }
+.readerbar .pos { color: var(--muted); font-size: 13px; }
+
+/* ---------- tải về / cài đặt ---------- */
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--gap);
+  margin-bottom: var(--gap);
+}
+.panel h2 { margin: 0 0 10px; font-size: 15px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row > .grow { flex: 1 1 320px; }
+
+.joblist { display: flex; flex-direction: column; gap: 8px; }
+.job { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+.job .url { font-size: 13px; color: var(--muted); word-break: break-all; }
+.job .state { font-size: 12px; font-weight: 600; }
+.job .state[data-s="done"] { color: var(--ok); }
+.job .state[data-s="failed"] { color: var(--bad); }
+.job .state[data-s="running"], .job .state[data-s="queued"] { color: var(--accent); }
+.job .state[data-s="needs_login"] { color: var(--warn); }
+.job .err { color: var(--bad); font-size: 12px; margin-top: 4px; }
+
+.log {
+  height: 240px;
+  overflow: auto;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.log div { white-space: pre-wrap; }
+.log .p { color: var(--accent); }
+
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 13px; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; word-break: break-all; }
+
+@media (max-width: 560px) {
+  :root { --cover-min: 120px; --gap: 12px; }
+  .brand { font-size: 14px; }
+  .nav a { padding: 6px 9px; }
+}

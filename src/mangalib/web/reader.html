@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đang đọc · Manga Local Library</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="reader">
+<header class="topbar">
+  <a class="brand" href="index.html">← Thư viện</a>
+  <div id="title" class="count" style="padding:0;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
+</header>
+
+<main style="padding:0">
+  <div class="pages" id="pages"></div>
+</main>
+
+<div class="readerbar">
+  <button id="prev" class="ghost" title="Chương trước (←)">←</button>
+  <select id="chapters" style="max-width:40vw"></select>
+  <button id="next" class="ghost" title="Chương sau (→)">→</button>
+  <span class="spacer"></span>
+  <label class="pos" for="zoom">Cỡ</label>
+  <input id="zoom" type="range" min="420" max="1600" step="20" value="900" style="width:120px">
+  <button id="theme" class="ghost" title="Sáng / tối">◐</button>
+  <span class="pos" id="pos"></span>
+</div>
+
+<script type="module" src="/static/js/reader.js"></script>
+</body>
+</html>

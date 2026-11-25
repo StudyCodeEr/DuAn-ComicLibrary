@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tải về · Manga Local Library</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Manga <span>Local Library</span></div>
+  <nav class="nav">
+    <a href="index.html">Thư viện</a>
+    <a href="downloads.html">Tải về</a>
+    <a href="settings.html">Cài đặt</a>
+  </nav>
+</header>
+
+<main>
+  <div class="panel">
+    <h2>Dán link truyện</h2>
+    <div class="row">
+      <input id="url" class="grow" type="url" placeholder="https://…/truyen/ten-truyen" autocomplete="off">
+      <button id="submit" class="primary">Tải về</button>
+    </div>
+    <p class="count" style="padding:8px 0 0">
+      Metadata lấy bằng HTTP thuần. Browser chỉ được mở ở bước phân giải danh sách ảnh của từng chương,
+      rồi đóng ngay.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>Việc đang chạy</h2>
+    <div class="joblist" id="jobs"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Nhật ký</h2>
+    <div class="log" id="log"></div>
+  </div>
+</main>
+
+<script type="module" src="/static/js/jobs.js"></script>
+</body>
+</html>
