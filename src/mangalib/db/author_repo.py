@@ -109,6 +109,7 @@ def manga_ids_by_name(conn: sqlite3.Connection, name: str) -> list[int]:
         SELECT DISTINCT l.manga_id
         FROM {_LINK} l
         JOIN {_TABLE} a ON a.id = l.author_id
+        JOIN manga m ON m.id = l.manga_id AND m.deleted_at IS NULL
         WHERE a.name = ? OR a.name_sort = ?
         """,
         (naming.normalize_person_name(name), naming.sort_key(name)),

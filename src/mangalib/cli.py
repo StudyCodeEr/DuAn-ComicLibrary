@@ -226,6 +226,10 @@ def _cmd_download(url: str, dry_run: bool, headful: bool, limit: int | None) -> 
     )
     for message in report.errors[:10]:
         print(f"  - {message}")
+    if len(report.errors) > 10:
+        # Truoc day cat im lang o 10 dong: nhin log tuong chi thieu 10 trang
+        # trong khi that ra thieu 61.
+        print(f"  … và {len(report.errors) - 10} lỗi nữa")
     return 0 if report.ok else 1
 
 

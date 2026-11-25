@@ -58,9 +58,12 @@ def count_by_name(
     """
     rows = conn.execute(
         f"""
-        SELECT t.name AS name, COUNT(l.manga_id) AS total
+        SELECT t.name AS name, COUNT(m.id) AS total
         FROM {table} t
         LEFT JOIN {link_table} l ON l.{link_column} = t.id
+        -- Dem theo m.id chu khong phai l.manga_id: truyen da xoa mem khong duoc
+        -- tinh, neu khong thi bo loc van hien tag cua truyen khong con thay.
+        LEFT JOIN manga m ON m.id = l.manga_id AND m.deleted_at IS NULL
         GROUP BY t.id
         ORDER BY total DESC, t.name COLLATE NOCASE ASC
         """

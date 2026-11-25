@@ -60,6 +60,8 @@ def upsert(conn: sqlite3.Connection, manga_id: int, chapter: Chapter) -> int:
     Không ghi đè `status`/`page_count` đã có: chỉ `record_result()` được đổi hai
     cột đó, vì chỉ nó biết kết quả tải thật.
     """
+    # Khong loc deleted_at: tai lai mot chuong da xoa mem la HOI SINH no, khong
+    # phai tao ban ghi thu hai trung (manga_id, dir_name).
     row = conn.execute(
         "SELECT id FROM chapter WHERE manga_id = ? AND dir_name = ?",
         (manga_id, chapter.dir_name),
@@ -129,8 +131,10 @@ def list_for_manga(conn: sqlite3.Connection, manga_id: int) -> list[Chapter]:
     rows = conn.execute(
         """
         SELECT * FROM chapter
-        WHERE manga_id = ?
-        ORDER BY number IS NULL, number ASC, dir_name ASC
+        WHERE manga_id = ? AND deleted_at IS NULL
+        -- sort_index la thu tu nguoi dung tu keo; chua keo thi xep theo so chuong.
+        ORDER BY sort_index IS NULL, sort_index ASC,
+                 number IS NULL, number ASC, dir_name ASC
         """,
         (manga_id,),
     ).fetchall()
@@ -138,7 +142,9 @@ def list_for_manga(conn: sqlite3.Connection, manga_id: int) -> list[Chapter]:
 
 
 def get(conn: sqlite3.Connection, chapter_id: int) -> Chapter | None:
-    row = conn.execute("SELECT * FROM chapter WHERE id = ?", (chapter_id,)).fetchone()
+    row = conn.execute(
+        "SELECT * FROM chapter WHERE id = ? AND deleted_at IS NULL", (chapter_id,)
+    ).fetchone()
     return _row_to_chapter(row) if row else None
 
 
@@ -147,7 +153,7 @@ def complete_dir_names(conn: sqlite3.Connection, manga_id: int) -> set[str]:
     rows = conn.execute(
         """
         SELECT dir_name FROM chapter
-        WHERE manga_id = ? AND status = 'complete'
+        WHERE manga_id = ? AND deleted_at IS NULL AND status = 'complete'
           AND (expected_page_count IS NULL OR page_count >= expected_page_count)
         """,
         (manga_id,),
@@ -158,10 +164,27 @@ def complete_dir_names(conn: sqlite3.Connection, manga_id: int) -> set[str]:
 def count_for_manga(conn: sqlite3.Connection, manga_id: int) -> int:
     return int(
         conn.execute(
-            "SELECT COUNT(*) AS total FROM chapter WHERE manga_id = ?", (manga_id,)
+            "SELECT COUNT(*) AS total FROM chapter WHERE manga_id = ? AND deleted_at IS NULL",
+            (manga_id,),
         ).fetchone()["total"]
     )
 
 
 def delete(conn: sqlite3.Connection, chapter_id: int) -> bool:
-    return bool(conn.execute("DELETE FROM chapter WHERE id = ?", (chapter_id,)).rowcount)
+    """Xoá mềm. File ảnh của chương vẫn nằm nguyên trên đĩa."""
+    return bool(
+        conn.execute(
+            "UPDATE chapter SET deleted_at = datetime('now') "
+            "WHERE id = ? AND deleted_at IS NULL",
+            (chapter_id,),
+        ).rowcount
+    )
+
+
+def set_order(conn: sqlite3.Connection, manga_id: int, chapter_ids: list[int]) -> int:
+    """Ghi thứ tự người dùng tự sắp. Một lệnh phục vụ cả kéo thả lẫn nút A-Z/Z-A."""
+    rows = [(i, cid, manga_id) for i, cid in enumerate(chapter_ids)]
+    conn.executemany(
+        "UPDATE chapter SET sort_index = ? WHERE id = ? AND manga_id = ?", rows
+    )
+    return len(rows)

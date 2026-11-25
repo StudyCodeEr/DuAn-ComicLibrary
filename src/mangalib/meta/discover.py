@@ -23,7 +23,14 @@ from urllib.parse import urljoin, urlsplit
 
 from mangalib import naming
 from mangalib.meta.models import ChapterRef
-from mangalib.meta.rules import ChaptersRule, FieldRule, PagesRule, SiteRule, rule_for_url
+from mangalib.meta.rules import (
+    ChaptersRule,
+    FieldRule,
+    FiltersRule,
+    PagesRule,
+    SiteRule,
+    rule_for_url,
+)
 
 __all__ = ["default_rule", "discover_chapters", "looks_like_chapter", "rule_for"]
 
@@ -240,6 +247,11 @@ def default_rule(url: str) -> SiteRule:
         chapters=ChaptersRule.model_validate(
             {"from": [{"select_options": "select"}], "order": "ascending_by_number"}
         ),
+        # Nguong 20KB mac dinh loai nham trang that: webtoon cat thanh lat dai,
+        # lat mau phang chi vai KB. Tang loc that su la `min_width` (do ngay trong
+        # browser) va magic byte; nguong byte chi con de chan pixel theo doi va
+        # phan hoi bi cat ngang.
+        filters=FiltersRule.model_validate({"min_bytes": 1_000}),
         pages=PagesRule.model_validate(
             {
                 "strategy": ["browser"],

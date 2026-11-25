@@ -96,10 +96,13 @@ def test_list_all_counts_manga_per_author(conn, make_manga):
     assert author_repo.list_all(conn) == [("Chung", 2), ("Rieng", 1)]
 
 
-def test_delete_manga_leaves_no_orphan_author(conn, make_manga):
+def test_xoa_mem_khong_tinh_tac_gia_nhung_xoa_that_moi_don_han(conn, make_manga):
     manga_id = make_manga("Một Truyện")
     author_repo.set_for_manga(conn, manga_id, [Author(name="Chỉ Một Truyện")])
     slug = manga_repo.get_by_id(conn, manga_id).slug
 
     assert manga_repo.delete(conn, slug) is True
+    assert author_repo.list_all(conn) == [("Chỉ Một Truyện", 0)], "hàng còn, số đếm về 0"
+
+    assert manga_repo.purge(conn, slug) is True
     assert author_repo.list_all(conn) == []

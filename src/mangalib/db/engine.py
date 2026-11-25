@@ -40,7 +40,7 @@ __all__ = [
     "write",
 ]
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
 _WRITE_LOCK = threading.Lock()
 """Mọi giao dịch ghi đi qua đây. WAL + busy_timeout là lưới an toàn thứ hai."""
@@ -124,6 +124,23 @@ def has_user_tables(conn: sqlite3.Connection) -> bool:
     return int(row["n"]) > 0
 
 
+def _migrate(conn: sqlite3.Connection, found: str | None) -> str | None:
+    """Nâng cấp schema tại chỗ. Trả về phiên bản sau khi nâng.
+
+    Chỉ thêm cột nên không đụng tới dữ liệu đang có — DB đang chứa truyện đã tải
+    vẫn dùng được, không phải quét lại từ đĩa.
+    """
+    if found == "2":
+        for sql in (
+            "ALTER TABLE manga ADD COLUMN deleted_at TEXT",
+            "ALTER TABLE chapter ADD COLUMN deleted_at TEXT",
+            "ALTER TABLE chapter ADD COLUMN sort_index INTEGER",
+        ):
+            conn.execute(sql)
+        found = "3"
+    return found
+
+
 def init_db(path: Path | str | None = None) -> Path:
     """Tạo DB (nếu cần) và áp schema. Gọi tường minh, không bao giờ lúc import.
 
@@ -136,6 +153,8 @@ def init_db(path: Path | str | None = None) -> Path:
     with write(target) as conn:
         found = schema_version(conn)
         if found != SCHEMA_VERSION and has_user_tables(conn):
-            raise SchemaMismatchError(target, found)
+            found = _migrate(conn, found)
+            if found != SCHEMA_VERSION:
+                raise SchemaMismatchError(target, found)
         apply_schema(conn)
     return target

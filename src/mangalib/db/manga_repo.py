@@ -42,11 +42,15 @@ _ORDER_BY: dict[str, str] = {
     "last_read": "m.last_read_at IS NULL, m.last_read_at DESC",
 }
 
+# Chuong da xoa mem khong duoc tinh vao so chuong / so trang hien ra.
 _COUNT_COLUMNS = """
-    (SELECT COUNT(*) FROM chapter c WHERE c.manga_id = m.id) AS chapter_count,
-    (SELECT COALESCE(SUM(c.page_count), 0) FROM chapter c WHERE c.manga_id = m.id)
-        AS page_count
+    (SELECT COUNT(*) FROM chapter c
+        WHERE c.manga_id = m.id AND c.deleted_at IS NULL) AS chapter_count,
+    (SELECT COALESCE(SUM(c.page_count), 0) FROM chapter c
+        WHERE c.manga_id = m.id AND c.deleted_at IS NULL) AS page_count
 """
+
+_CON_SONG = " AND m.deleted_at IS NULL"
 
 
 def unique_slug(conn: sqlite3.Connection, title: str) -> str:
@@ -81,7 +85,7 @@ def upsert(conn: sqlite3.Connection, manga: Manga) -> int:
             UPDATE manga
                SET slug = ?, title = ?, title_sort = ?, source_key = ?, source_url = ?,
                    cover_file = COALESCE(?, cover_file), description = COALESCE(?, description),
-                   updated_at = datetime('now')
+                   updated_at = datetime('now'), deleted_at = NULL
              WHERE id = ?
             """,
             (
@@ -142,14 +146,14 @@ def _hydrate(conn: sqlite3.Connection, row: sqlite3.Row) -> Manga:
 
 def get_by_slug(conn: sqlite3.Connection, slug: str) -> Manga | None:
     row = conn.execute(
-        f"SELECT m.*, {_COUNT_COLUMNS} FROM manga m WHERE m.slug = ?", (slug,)
+        f"SELECT m.*, {_COUNT_COLUMNS} FROM manga m WHERE m.slug = ?{_CON_SONG}", (slug,)
     ).fetchone()
     return _hydrate(conn, row) if row else None
 
 
 def get_by_id(conn: sqlite3.Connection, manga_id: int) -> Manga | None:
     row = conn.execute(
-        f"SELECT m.*, {_COUNT_COLUMNS} FROM manga m WHERE m.id = ?", (manga_id,)
+        f"SELECT m.*, {_COUNT_COLUMNS} FROM manga m WHERE m.id = ?{_CON_SONG}", (manga_id,)
     ).fetchone()
     return _hydrate(conn, row) if row else None
 
@@ -221,7 +225,7 @@ def search(
 
     total = int(
         conn.execute(
-            f"SELECT COUNT(*) AS total FROM manga m WHERE 1=1{where}", params
+            f"SELECT COUNT(*) AS total FROM manga m WHERE 1=1{_CON_SONG}{where}", params
         ).fetchone()["total"]
     )
 
@@ -229,7 +233,7 @@ def search(
         f"""
         SELECT m.*, {_COUNT_COLUMNS}
         FROM manga m
-        WHERE 1=1{where}
+        WHERE 1=1{_CON_SONG}{where}
         ORDER BY {order}
         LIMIT ? OFFSET ?
         """,
@@ -249,7 +253,7 @@ def set_cover(conn: sqlite3.Connection, slug: str, cover_file: str) -> bool:
 
 
 def count(conn: sqlite3.Connection) -> int:
-    return int(conn.execute("SELECT COUNT(*) AS total FROM manga").fetchone()["total"])
+    return int(conn.execute("SELECT COUNT(*) AS total FROM manga WHERE deleted_at IS NULL").fetchone()["total"])
 
 
 def touch_read(conn: sqlite3.Connection, manga_id: int) -> None:
@@ -259,7 +263,29 @@ def touch_read(conn: sqlite3.Connection, manga_id: int) -> None:
 
 
 def delete(conn: sqlite3.Connection, slug: str) -> bool:
-    """Xoá truyện khỏi DB (chương, trang, liên kết tag/tác giả rơi theo CASCADE).
+    """Xoá mềm: đánh dấu `deleted_at`, không xoá hàng nào.
+
+    File ảnh và hàng trong DB đều còn nguyên, nên hoàn tác chỉ là xoá lại dấu.
+    Muốn xoá thật thì dùng `purge()`.
+    """
+    cursor = conn.execute(
+        "UPDATE manga SET deleted_at = datetime('now') WHERE slug = ? AND deleted_at IS NULL",
+        (slug,),
+    )
+    return bool(cursor.rowcount)
+
+
+def restore(conn: sqlite3.Connection, slug: str) -> bool:
+    """Hoàn tác xoá mềm."""
+    return bool(
+        conn.execute(
+            "UPDATE manga SET deleted_at = NULL WHERE slug = ?", (slug,)
+        ).rowcount
+    )
+
+
+def purge(conn: sqlite3.Connection, slug: str) -> bool:
+    """Xoá thật khỏi DB (chương, trang, liên kết rơi theo CASCADE).
 
     Không xoá file trên đĩa: việc đó thuộc tầng storage, không thuộc tầng DB.
     """

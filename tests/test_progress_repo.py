@@ -69,6 +69,12 @@ def test_progress_disappears_with_manga(conn, make_manga):
     chapter_id = chapter_repo.upsert(conn, manga_id, Chapter(title="C1", dir_name="d1"))
     progress_repo.save(conn, manga_id, chapter_id)
 
-    manga_repo.delete(conn, manga_repo.get_by_id(conn, manga_id).slug)
+    slug = manga_repo.get_by_id(conn, manga_id).slug
 
+    # Xoá mềm phải GIỮ vị trí đọc: hoàn tác xong là đọc tiếp đúng chỗ cũ.
+    manga_repo.delete(conn, slug)
+    assert conn.execute("SELECT COUNT(*) AS n FROM progress").fetchone()["n"] == 1
+
+    # Xoá thật mới quét sạch theo CASCADE.
+    manga_repo.purge(conn, slug)
     assert conn.execute("SELECT COUNT(*) AS n FROM progress").fetchone()["n"] == 0

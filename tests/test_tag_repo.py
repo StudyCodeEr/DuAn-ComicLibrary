@@ -58,6 +58,11 @@ def test_delete_manga_prunes_orphan_tags_but_keeps_shared(conn, make_manga):
     tag_repo.set_for_manga(conn, shared_b, ["Dùng Chung"])
 
     slug = manga_repo.get_by_id(conn, shared_a).slug
-    manga_repo.delete(conn, slug)
 
+    # Xoá mềm: hàng tag còn nguyên nhưng không được tính cho truyện đã ẩn.
+    manga_repo.delete(conn, slug)
+    assert tag_repo.list_all(conn) == [("Dùng Chung", 1), ("Chỉ Riêng A", 0)]
+
+    # Xoá thật mới dọn hẳn tag mồ côi.
+    manga_repo.purge(conn, slug)
     assert tag_repo.list_all(conn) == [("Dùng Chung", 1)]

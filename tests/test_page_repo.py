@@ -72,7 +72,14 @@ def test_saved_indexes_reports_what_is_missing(conn, chapter_id):
     assert sorted(set(range(5)) - saved) == [1, 2, 4]
 
 
-def test_pages_disappear_with_their_chapter(conn, chapter_id):
+def test_xoa_mem_chuong_giu_lai_trang_de_hoan_tac(conn, chapter_id):
+    """Xoá chương là xoá mềm: chương biến khỏi danh sách nhưng trang còn nguyên.
+
+    Giữ lại trang chính là thứ làm "hoàn tác" khả thi — xoá thật thì không lùi được.
+    """
     page_repo.upsert_many(conn, chapter_id, [Page(idx=0, file_name="001.webp")])
+
     chapter_repo.delete(conn, chapter_id)
-    assert page_repo.count_for_chapter(conn, chapter_id) == 0
+
+    assert chapter_repo.get(conn, chapter_id) is None, "không còn thấy chương"
+    assert page_repo.count_for_chapter(conn, chapter_id) == 1, "trang vẫn còn"

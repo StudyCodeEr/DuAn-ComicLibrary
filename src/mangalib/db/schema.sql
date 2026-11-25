@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS manga (
     description  TEXT,
     added_at     TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at   TEXT,
-    last_read_at TEXT
+    last_read_at TEXT,
+    -- Xoa mem: file anh van nam nguyen tren dia, nen hoan tac duoc.
+    deleted_at   TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_manga_sort  ON manga(title_sort);
@@ -61,6 +63,9 @@ CREATE TABLE IF NOT EXISTS chapter (
     status              TEXT NOT NULL DEFAULT 'pending'
                         CHECK (status IN ('pending', 'partial', 'complete', 'failed')),
     downloaded_at       TEXT,
+    deleted_at          TEXT,
+    -- Thu tu do nguoi dung tu keo. NULL = xep theo `number` nhu mac dinh.
+    sort_index          INTEGER,
     UNIQUE (manga_id, dir_name)
 );
 

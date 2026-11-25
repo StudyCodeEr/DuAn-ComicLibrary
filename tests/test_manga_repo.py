@@ -152,3 +152,20 @@ def test_counts_come_from_query_not_filesystem(conn, make_manga):
 
 def test_delete_returns_false_for_unknown_slug(conn):
     assert manga_repo.delete(conn, "khong-ton-tai") is False
+
+
+def test_xoa_mem_an_truyen_khoi_thu_vien_nhung_khong_mat_hang(conn, make_manga):
+    make_manga("Truyện A")
+    slug = manga_repo.search(conn, q="", include_tags=[], exclude_tags=[], author=None,
+                             sort="added", page=1, per_page=10)[0][0].slug
+
+    assert manga_repo.delete(conn, slug) is True
+
+    assert manga_repo.count(conn) == 0
+    assert manga_repo.get_by_slug(conn, slug) is None
+    _, total = manga_repo.search(conn, q="", include_tags=[], exclude_tags=[], author=None,
+                                 sort="added", page=1, per_page=10)
+    assert total == 0
+    # Hàng vẫn còn nên hoàn tác được — đó là lý do dùng xoá mềm.
+    assert manga_repo.restore(conn, slug) is True
+    assert manga_repo.get_by_slug(conn, slug) is not None

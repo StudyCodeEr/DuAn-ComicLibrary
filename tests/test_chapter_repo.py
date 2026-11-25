@@ -112,3 +112,32 @@ def test_delete_chapter(conn, make_manga):
     chapter_id = chapter_repo.upsert(conn, manga_id, Chapter(title="x", dir_name="d1"))
     assert chapter_repo.delete(conn, chapter_id) is True
     assert chapter_repo.get(conn, chapter_id) is None
+
+
+def test_set_order_thang_thu_tu_theo_so_chuong(conn, make_manga):
+    """Kéo thả / nút A-Z đều ghi qua `set_order`, và nó phải thắng số chương.
+
+    Cần khi tải lại một bộ làm chương xáo trộn: người dùng tự sắp lại được.
+    """
+    manga_id = make_manga("A")
+    ids = [
+        chapter_repo.upsert(conn, manga_id, Chapter(title=f"Chương {n}", dir_name=f"{n:04d}", number=float(n)))
+        for n in (1, 2, 3)
+    ]
+
+    chapter_repo.set_order(conn, manga_id, [ids[2], ids[0], ids[1]])
+
+    assert [c.id for c in chapter_repo.list_for_manga(conn, manga_id)] == [
+        ids[2], ids[0], ids[1],
+    ]
+
+
+def test_xoa_mem_chuong_bien_khoi_danh_sach(conn, make_manga):
+    manga_id = make_manga("A")
+    giu = chapter_repo.upsert(conn, manga_id, Chapter(title="Chương 1", dir_name="0001", number=1.0))
+    bo = chapter_repo.upsert(conn, manga_id, Chapter(title="Chương 2", dir_name="0002", number=2.0))
+
+    assert chapter_repo.delete(conn, bo) is True
+
+    assert [c.id for c in chapter_repo.list_for_manga(conn, manga_id)] == [giu]
+    assert chapter_repo.count_for_manga(conn, manga_id) == 1

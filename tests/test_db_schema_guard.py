@@ -73,3 +73,44 @@ def test_has_user_tables_false_on_fresh_db(tmp_path):
     path = tmp_path / "trong.db"
     with engine.connect(path) as conn:
         assert engine.has_user_tables(conn) is False
+
+
+def _make_v2_db(path):
+    """DB đúng hình dạng v2: schema hiện tại trừ ba cột thêm ở v3."""
+    sql = engine.schema_sql()
+    for dong in (
+        "    -- Xoa mem: file anh van nam nguyen tren dia, nen hoan tac duoc.\n"
+        "    deleted_at   TEXT\n",
+        "    deleted_at          TEXT,\n"
+        "    -- Thu tu do nguoi dung tu keo. NULL = xep theo `number` nhu mac dinh.\n"
+        "    sort_index          INTEGER,\n",
+    ):
+        assert dong in sql, "schema.sql đã đổi — sửa lại fixture này"
+        sql = sql.replace(dong, "", 1)
+    # Bo dau phay thua o dong truoc `deleted_at` cua bang manga.
+    sql = sql.replace("    last_read_at TEXT,\n);", "    last_read_at TEXT\n);", 1)
+
+    conn = sqlite3.connect(path)
+    conn.executescript(sql)
+    conn.execute("INSERT INTO meta (key, value) VALUES ('schema_version', '2')")
+    conn.execute(
+        "INSERT INTO manga (slug, title, title_sort) VALUES ('abc', 'Truyện A', 'truyen a')"
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_nang_cap_v2_len_v3_giu_nguyen_du_lieu(tmp_path):
+    """Nâng cấp tại chỗ, không bắt người dùng quét lại thư viện từ đĩa."""
+    path = tmp_path / "library.db"
+    _make_v2_db(path)
+
+    engine.init_db(path)
+
+    with engine.connect(path) as conn:
+        assert engine.schema_version(conn) == engine.SCHEMA_VERSION
+        row = conn.execute("SELECT title, deleted_at FROM manga WHERE slug = 'abc'").fetchone()
+        assert row["title"] == "Truyện A", "dữ liệu cũ phải còn nguyên"
+        assert row["deleted_at"] is None
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(chapter)")}
+        assert {"deleted_at", "sort_index"} <= cols
