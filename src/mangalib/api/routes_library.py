@@ -55,6 +55,12 @@ def _progress_json(conn, manga) -> dict | None:
         "chapter_id": found.chapter_id,
         "page_idx": found.page_idx,
         "ratio": round(ratio, 4),
+        # Vi tri doc duoc tinh ra day: the truyen phai noi duoc DUOC BAO XA, khong
+        # phai ten chuong - ten do con la rac lay tu site (xem PRODUCT.md).
+        "page_pos": found.page_idx + 1,
+        "chapter_pages": pages,
+        "chapter_index": index + 1,
+        "chapter_total": max(1, len(chapters)),
         "chapter_title": chapters[index].title if chapters else None,
     }
 

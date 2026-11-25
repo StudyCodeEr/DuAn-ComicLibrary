@@ -1,5 +1,5 @@
 // Thư viện: dải "Đọc tiếp", lưới bìa, tìm kiếm, lọc thể loại ba trạng thái.
-import { api, el, markCurrentNav } from "./api.js";
+import { api, el, icon, markCurrentNav } from "./api.js";
 
 markCurrentNav();
 
@@ -40,10 +40,17 @@ function coverNode(item, alt = "") {
    chưa đọc · đang đọc (chương mấy) · đã đọc hết. */
 function progressFacts(item) {
   const progress = item.progress;
-  if (!progress) return { label: "Chưa đọc", ratio: 0, done: false };
-  if (progress.ratio >= FINISHED) return { label: "Đã đọc hết", ratio: 1, done: true };
-  const where = progress.chapter_title ? `Đang đọc · ${progress.chapter_title}` : "Đang đọc";
-  return { label: where, ratio: progress.ratio, done: false };
+  if (!progress) return { label: "Chưa đọc", ratio: 0, state: "unread" };
+  if (progress.ratio >= FINISHED) return { label: "Đã đọc hết", ratio: 1, state: "done" };
+
+  // Nói ĐƯỢC BAO XA, không nói tên chương: tên chương lấy từ site thường là rác
+  // ("Nội dung trực tiếp", "Sech nonstop") và không trả lời câu người dùng hỏi.
+  const parts = [];
+  if (progress.chapter_total > 1) {
+    parts.push(`ch ${progress.chapter_index}/${progress.chapter_total}`);
+  }
+  parts.push(`trang ${progress.page_pos}/${progress.chapter_pages}`);
+  return { label: parts.join(" · "), ratio: progress.ratio, state: "reading" };
 }
 
 function card(item) {
@@ -61,7 +68,7 @@ function card(item) {
 
   if (facts.ratio > 0) {
     inner.push(
-      el("div", { class: "progress", "data-done": facts.done ? "1" : "0" }, [
+      el("div", { class: "progress", "data-done": facts.state === "done" ? "1" : "0" }, [
         el("i", { style: `width:${Math.min(100, Math.round(facts.ratio * 100))}%` }),
       ]),
     );
@@ -75,7 +82,7 @@ function card(item) {
       el("div", { class: "meta" }, [
         el("div", { class: "title", text: item.title }),
         el("div", { class: "stat" }, [
-          el("b", { "data-done": facts.done ? "1" : "0", text: facts.label }),
+          el("b", { "data-state": facts.state, text: facts.label }),
         ]),
         el(
           "div",
@@ -97,7 +104,10 @@ function resumeCard(item) {
       el("div", { class: "body" }, [
         el("div", { class: "t", text: item.title }),
         el("div", { class: "c", text: facts.label }),
-        el("div", { class: "go", text: "Đọc tiếp →" }),
+        el("div", { class: "go" }, [
+          document.createTextNode("Đọc tiếp "),
+          icon("next", { size: 14 }),
+        ]),
       ]),
     ],
   );
@@ -122,16 +132,20 @@ async function renderChips() {
 
   if (state.author) {
     chips.push(
-      el("button", {
-        class: "chip",
-        "data-state": "1",
-        text: `tác giả: ${state.author} ✕`,
-        onclick: () => {
-          state.author = null;
-          reload();
-          renderChips();
+      el(
+        "button",
+        {
+          class: "chip",
+          "data-state": "1",
+          title: "Bỏ lọc theo tác giả",
+          onclick: () => {
+            state.author = null;
+            reload();
+            renderChips();
+          },
         },
-      }),
+        [document.createTextNode(`tác giả: ${state.author} `), icon("close", { size: 13 })],
+      ),
     );
   }
 

@@ -176,31 +176,42 @@ button.iconbtn { padding: 7px; }
   display: flex;
   gap: 10px;
   flex: 0 0 auto;
-  width: 280px;
-  height: 160px;
+  width: 320px;
+  height: 132px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
   overflow: hidden;
 }
 .resume:hover { border-color: var(--accent); }
-.resume img { width: 107px; height: 100%; object-fit: cover; display: block; }
+.resume img { width: 88px; height: 100%; object-fit: cover; display: block; }
 .resume .body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 10px 10px 0;
+  padding: 10px 12px 10px 0;
   min-width: 0;
+  justify-content: center;
 }
+/* Bậc chữ cao nhất trên bề mặt thư viện: truyện đang đọc dở là thứ quan trọng
+   nhất ở đây, nên nó phải đọc như một tiêu đề, không như một dòng meta. */
 .resume .t {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-lg);
   font-weight: 600;
-  line-height: 1.3;
-  max-height: 3.9em;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  max-height: 2.4em;
   overflow: hidden;
 }
 .resume .c { font-size: var(--fs-xs); color: var(--muted); }
-.resume .go { margin-top: auto; color: var(--accent); font-size: var(--fs-xs); font-weight: 600; }
+.resume .go {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
 
 /* ---------- bộ lọc ---------- */
 .filters {
@@ -287,15 +298,20 @@ h1.page {
 
 .card .meta { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
 .card .title {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-base);
   font-weight: 600;
-  line-height: 1.3;
-  height: 2.6em;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  height: 2.5em;
   overflow: hidden;
 }
 .card .stat { font-size: var(--fs-xs); color: var(--muted); }
-.card .stat b { color: var(--accent); font-weight: 600; }
-.card .stat b[data-done="1"] { color: var(--ok); }
+/* Ba trạng thái phải khác MÀU, không chỉ khác chữ: nếu "Chưa đọc" cũng mang màu
+   nhấn thì một thư viện hàng nghìn truyện chưa đọc sẽ sáng đều từ đầu đến cuối,
+   và đúng truyện đang đọc dở bị lẫn vào đó. */
+.card .stat b { color: var(--muted); font-weight: 600; }
+.card .stat b[data-state="reading"] { color: var(--accent); }
+.card .stat b[data-state="done"] { color: var(--ok); }
 .card .tags { display: flex; gap: 4px; flex-wrap: wrap; height: 20px; overflow: hidden; }
 .card .tags span {
   font-size: var(--fs-xs);
@@ -414,8 +430,8 @@ dl.kv dd { margin: 0; word-break: break-all; }
   .count { padding-block: 4px; }
 
   .continue { padding: 10px var(--gap); }
-  .resume { width: 240px; height: 140px; }
-  .resume img { width: 93px; }
+  .resume { width: 244px; height: 118px; }
+  .resume img { width: 79px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
