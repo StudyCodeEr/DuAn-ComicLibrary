@@ -68,6 +68,13 @@ def build_parser() -> argparse.ArgumentParser:
     dl.add_argument("--headful", action="store_true", help="hiện cửa sổ browser")
     dl.add_argument("--limit", type=int, help="chỉ tải N chương đầu trong số cần tải")
 
+    app_cmd = sub.add_parser(
+        "app", help="chạy như ứng dụng desktop: server + khay hệ thống + cửa sổ"
+    )
+    app_cmd.add_argument("--hidden", action="store_true", help="chạy ngầm, không mở cửa sổ")
+    app_cmd.add_argument("--port", type=int, default=8000)
+    app_cmd.add_argument("--autostart", choices=["on", "off", "status"])
+
     serve_cmd = sub.add_parser("serve", help="chạy server: web UI + API cho điện thoại")
     serve_cmd.add_argument("--host", default="0.0.0.0")
     serve_cmd.add_argument("--port", type=int, default=8000)
@@ -236,6 +243,46 @@ def _cmd_serve(host: str, port: int) -> int:
     return 0
 
 
+def _cmd_app(hidden: bool, port: int, autostart_action: str | None) -> int:
+    import threading
+    import time
+
+    import uvicorn
+
+    from mangalib.api import create_app
+    from mangalib.shell import autostart, tray, window
+
+    if autostart_action:
+        if autostart_action == "status":
+            print("Tự khởi động:", "đang bật" if autostart.is_enabled() else "đang tắt")
+            print("Lệnh đăng ký:", autostart.command())
+            return 0
+        ok = autostart.enable() if autostart_action == "on" else autostart.disable()
+        print(("Đã bật" if autostart_action == "on" else "Đã tắt"), "tự khởi động." if ok else "— thất bại.")
+        return 0 if ok else 1
+
+    url = f"http://127.0.0.1:{port}"
+    server = uvicorn.Server(
+        uvicorn.Config(create_app(), host="0.0.0.0", port=port, log_config=None, log_level="warning")
+    )
+    thread = threading.Thread(target=server.run, name="mangalib-http", daemon=True)
+    thread.start()
+
+    for _ in range(50):  # chờ server sẵn sàng, tối đa 5 giây
+        if server.started:
+            break
+        time.sleep(0.1)
+
+    print(f"Web UI: {url}")
+    if not hidden:
+        print("Đang mở:", window.open_window(url))
+
+    tray.run_tray(url, on_open=lambda: window.open_window(url), on_quit=lambda: None)
+    server.should_exit = True
+    thread.join(timeout=5)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     parser = build_parser()
@@ -255,6 +302,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_probe(args.url)
         if args.command == "download":
             return _cmd_download(args.url, args.dry_run, args.headful, args.limit)
+        if args.command == "app":
+            return _cmd_app(args.hidden, args.port, args.autostart)
         if args.command == "serve":
             return _cmd_serve(args.host, args.port)
         if args.command == "scan":

@@ -1,0 +1,23 @@
+{
+  "productName": "Manga Local Library",
+  "version": "3.0.0",
+  "identifier": "local.mangalib.shell",
+  "build": { "frontendDist": "http://127.0.0.1:8000" },
+  "app": {
+    "windows": [
+      {
+        "title": "Manga Local Library",
+        "width": 1280,
+        "height": 900,
+        "resizable": true
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["../app_icon.ico"],
+    "externalBin": ["binaries/MangaLocalLibrary"]
+  }
+}

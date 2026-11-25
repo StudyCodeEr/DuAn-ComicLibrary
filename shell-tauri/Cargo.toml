@@ -1,0 +1,12 @@
+[package]
+name = "mangalib-shell"
+version = "3.0.0"
+edition = "2021"
+description = "Vo desktop cho Manga Local Library"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
