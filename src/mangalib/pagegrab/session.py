@@ -121,6 +121,13 @@ class BrowserSession:
             urls = self._filter(items, rule)
             if not urls:
                 raise NoPagesFound(f"không tìm thấy ảnh trang truyện nào ở {url}")
+
+            # `declared` chi dang tin khi rule khoanh vung khung doc. Khong co
+            # container thi no dem CA logo, banner, thumbnail truyen khac - mot
+            # chuong 33 trang bi bao 33/37 va danh partial oan.
+            if not pages_rule.container:
+                declared = 0
+
             if declared and len(urls) < declared:
                 logger.warning(
                     "chỉ render được %d/%d trang — chương sẽ được ghi là partial",

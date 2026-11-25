@@ -169,14 +169,11 @@ def _cmd_scan(root: str | None, prune: bool, reset: bool = False) -> int:
 
 def _cmd_probe(url: str) -> int:
     from mangalib.errors import ChallengeRequired, MangalibError
-    from mangalib.meta import GenericSource, HttpClient, rule_for_url
+    from mangalib.meta import GenericSource, HttpClient, discover
 
-    rule = rule_for_url(url)
-    if rule is None:
-        print("Không có rule nào khớp domain này. Thêm một file .yml vào data/sites/")
-        return 1
-
-    print(f"Rule: {rule.key} ({rule.name}) — domain: {', '.join(rule.domains)}")
+    rule = discover.rule_for(url)
+    nguon = "suy ra từ trang" if rule.auto_discover else "file .yml"
+    print(f"Rule: {rule.key} ({nguon}) — domain: {', '.join(rule.domains)}")
     try:
         with HttpClient(min_delay_ms=rule.request.min_delay_ms) as http:
             meta = GenericSource(rule).fetch_manga(http, url)

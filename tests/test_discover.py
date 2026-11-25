@@ -81,3 +81,39 @@ def test_default_rule_bat_che_do_tu_suy():
     assert rule.auto_discover
     assert rule.domains == ["site.test"], "bỏ www. để khớp domain cho đúng"
     assert rule.failover is False, "domain suy ra chỉ có một, không có gì để thử thay"
+
+
+TRANG_NOI_DAI = """
+<html><body>
+  <a href="/truyen-tranh/abc-25756-chap-2.html">Đọc từ đầu</a>
+  <a href="/truyen-tranh/abc-25756-chap-11.html">Đọc Chap Mới</a>
+  <a href="/truyen-tranh/truyen-khac-999">Truyện khác 999</a>
+  <main>
+    <a href="/truyen-tranh/abc-25756-chap-11.html">Chương 11</a>
+    <a href="/truyen-tranh/abc-25756-chap-3.html">Chương 3</a>
+    <a href="/truyen-tranh/abc-25756-chap-2.html">Chương 2</a>
+  </main>
+</body></html>
+"""
+GOC = "https://site.test/truyen-tranh/abc-25756"
+
+
+def test_uu_tien_ten_co_so_khi_hai_link_cung_mot_url():
+    """Nút "Đọc từ đầu" và dòng "Chương 2" cùng trỏ một URL.
+
+    Giữ cái gặp trước sẽ lấy tên nút và mất số chương — chương đó tụt xuống cuối.
+    """
+    chuong = _chuong(TRANG_NOI_DAI, GOC)
+
+    assert [c.number for c in chuong] == [2.0, 3.0, 11.0]
+
+
+def test_bo_truyen_khac_nam_cung_thu_muc():
+    """`/truyen-tranh/` chứa cả chương lẫn truyện khác.
+
+    Chương nối dài đường dẫn của chính trang này, truyện khác thì không.
+    """
+    chuong = _chuong(TRANG_NOI_DAI, GOC)
+
+    assert all("abc-25756" in c.url for c in chuong)
+    assert not any("truyen-khac" in c.url for c in chuong)

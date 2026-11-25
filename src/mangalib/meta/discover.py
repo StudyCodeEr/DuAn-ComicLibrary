@@ -23,9 +23,9 @@ from urllib.parse import urljoin, urlsplit
 
 from mangalib import naming
 from mangalib.meta.models import ChapterRef
-from mangalib.meta.rules import ChaptersRule, FieldRule, PagesRule, SiteRule
+from mangalib.meta.rules import ChaptersRule, FieldRule, PagesRule, SiteRule, rule_for_url
 
-__all__ = ["default_rule", "discover_chapters", "looks_like_chapter"]
+__all__ = ["default_rule", "discover_chapters", "looks_like_chapter", "rule_for"]
 
 # Tu khoa cho "nut doc truyen hoac tuong duong". `link_text_any` so khop chuoi
 # thuong TRUC TIEP, khong bo dau - nen phai liet ke dung dang co dau.
@@ -57,7 +57,7 @@ _NUMBER_IN_TEXT = re.compile(r"\d")
 
 # Khoi thong tin truyen. Khong site nao giong site nao nen liet ke cac ten pho bien;
 # khong khop cai nao thi nguon ke tiep se quet ca trang.
-_INFO_SCOPE = "main, article, [class*='info'], [class*='detail'], [id*='info'], [id*='detail']"
+_INFO_SCOPE = "main, article, [class*='info'], [id*='info']"
 _TAG_SELECTOR = (
     "a[href*='/the-loai/'], a[href*='/genre/'], a[href*='/tag/'], a[href*='/category/']"
 )
@@ -82,18 +82,28 @@ def _same_site(a: str, b: str) -> bool:
 
 
 def _links(tree, base_url: str) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    seen: set[str] = set()
+    """Link cùng site, mỗi URL một lần.
+
+    Cùng một chương thường được trỏ tới hai lần: một nút ("Đọc từ đầu", "Đọc Chap
+    Mới") và một dòng trong danh sách ("Chương 2"). Giữ cái gặp trước sẽ lấy phải
+    tên nút - mất số chương. Nên khi trùng URL thì ưu tiên tên CÓ số.
+    """
+    best: dict[str, str] = {}
     for node in tree.css("a[href]"):
         href = (node.attributes.get("href") or "").strip()
         if not href or href.startswith(("#", "javascript:", "mailto:")):
             continue
         url = urljoin(base_url, href).split("#")[0]
-        if url in seen or not _same_site(url, base_url):
+        if not _same_site(url, base_url):
             continue
-        seen.add(url)
-        out.append((" ".join(node.text().split()), url))
-    return out
+        title = " ".join(node.text().split())
+        cu = best.get(url)
+        if cu is None or (
+            naming.parse_chapter_number(cu) is None
+            and naming.parse_chapter_number(title) is not None
+        ):
+            best[url] = title
+    return [(title, url) for url, title in best.items()]
 
 
 def discover_chapters(tree, base_url: str) -> list[ChapterRef]:
@@ -112,6 +122,16 @@ def discover_chapters(tree, base_url: str) -> list[ChapterRef]:
     # thuan tuy se chon nham - dung con bug 645 link cua ban cu. Dau hieu chac
     # chan: chuong nam DUOI duong dan cua chinh trang dang xem, menu thi khong.
     page_path = urlsplit(base_url).path.rstrip("/")
+
+    noi_dai = [
+        m
+        for m in _links(tree, base_url)
+        if urlsplit(m[1]).path.rstrip("/") != page_path
+        and urlsplit(m[1]).path.startswith(page_path)
+        and looks_like_chapter(*m)
+    ]
+    if len(noi_dai) >= 2:
+        return _sap_xep(noi_dai)
 
     def duoi_trang_nay(parent: str) -> bool:
         return parent == page_path or parent.startswith(f"{page_path}/") or (
@@ -134,16 +154,29 @@ def discover_chapters(tree, base_url: str) -> list[ChapterRef]:
         if score > best_score:
             best_score, best = score, hits
 
+    return _sap_xep(best)
+
+
+def _sap_xep(members: list[tuple[str, str]]) -> list[ChapterRef]:
     refs = [
         ChapterRef(
             title=title or url.rstrip("/").rsplit("/", 1)[-1],
             url=url,
             number=naming.parse_chapter_number(title),
         )
-        for title, url in best
+        for title, url in members
     ]
     refs.sort(key=lambda c: (c.number is None, c.number or 0.0, c.title))
     return refs
+
+
+def rule_for(url: str) -> SiteRule:
+    """Rule cho URL này: file `.yml` nếu có, không thì suy ra từ chính trang.
+
+    Mọi nơi cần rule phải đi qua đây. Trước đó `pipeline` và `cli probe` mỗi chỗ
+    tự gọi `rule_for_url` rồi tự xử lý None, nên vá một chỗ là sót chỗ kia.
+    """
+    return rule_for_url(url) or default_rule(url)
 
 
 def default_rule(url: str) -> SiteRule:
@@ -195,10 +228,10 @@ def default_rule(url: str) -> SiteRule:
                 # site thuong chua hang tram link the loai; quet ca trang la hut het
                 # ve lam the - dung con bug 645 link cua ban cu. `_scoped` tra rong
                 # khi khong khop nen site khong co <main> van roi xuong nguon sau.
-                "from": [
-                    {"css": _TAG_SELECTOR, "within": _INFO_SCOPE},
-                    {"css": _TAG_SELECTOR},
-                ],
+                # KHONG co nguon quet ca trang: nhieu site co dam may tag toan site
+                # (truyenggvn.com co 53 the loai trong mot khoi chung). Tha khong co
+                # the loai con hon gan sai 53 cai.
+                "from": [{"css": _TAG_SELECTOR, "within": _INFO_SCOPE}],
                 "strip_trailing_count": True,
                 "max_len": 40,
             }
@@ -207,5 +240,14 @@ def default_rule(url: str) -> SiteRule:
         chapters=ChaptersRule.model_validate(
             {"from": [{"select_options": "select"}], "order": "ascending_by_number"}
         ),
-        pages=PagesRule.model_validate({"strategy": ["browser"], "image_selector": "img"}),
+        pages=PagesRule.model_validate(
+            {
+                "strategy": ["browser"],
+                "image_selector": "img",
+                # Tran cuon mac dinh 30s la qua ngan cho chuong dai: do thu mot
+                # chuong 37 trang thi dung o 33 trang vi het gio, bi danh partial.
+                # 120s la gia tri da chay on tren rule viet tay.
+                "scroll": {"idle_ms": 900, "max_ms": 120_000, "step_px": 1_600},
+            }
+        ),
     )
