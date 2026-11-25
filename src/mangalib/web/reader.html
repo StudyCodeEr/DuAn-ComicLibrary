@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Đang đọc · Manga Local Library</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="stylesheet" href="/static/app.css">
 </head>
-<body class="reader">
+<body class="reader" data-chrome="shown">
 <header class="topbar">
-  <a class="brand" href="index.html">← Thư viện</a>
+  <a class="brand" id="back" href="index.html" title="Về thư viện"></a>
   <div id="title" class="count" style="padding:0;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"></div>
 </header>
 
@@ -18,13 +18,13 @@
 </main>
 
 <div class="readerbar">
-  <button id="prev" class="ghost" title="Chương trước (←)">←</button>
-  <select id="chapters" style="max-width:40vw"></select>
-  <button id="next" class="ghost" title="Chương sau (→)">→</button>
+  <button id="prev" class="ghost iconbtn" title="Chương trước (←)" aria-label="Chương trước"></button>
+  <select id="chapters" style="max-width:38vw" aria-label="Chọn chương"></select>
+  <button id="next" class="ghost iconbtn" title="Chương sau (→)" aria-label="Chương sau"></button>
   <span class="spacer"></span>
   <label class="pos" for="zoom">Cỡ</label>
-  <input id="zoom" type="range" min="420" max="1600" step="20" value="900" style="width:120px">
-  <button id="theme" class="ghost" title="Sáng / tối">◐</button>
+  <input id="zoom" type="range" min="420" max="1600" step="20" value="900" style="width:110px">
+  <button id="theme" class="ghost iconbtn" title="Sáng / tối" aria-label="Đổi sáng tối"></button>
   <span class="pos" id="pos"></span>
 </div>
 

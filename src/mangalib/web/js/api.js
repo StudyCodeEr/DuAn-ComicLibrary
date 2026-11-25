@@ -1,6 +1,23 @@
-// Lớp gọi API dùng chung. Không build step: ES module thuần, chạy trực tiếp.
+// Lớp gọi API + helper dựng DOM. Không build step: ES module thuần.
 
 const BASE = "/api/v1";
+
+// Theme phải áp TRƯỚC khi vẽ, và áp trên MỌI trang. Trước đây reader và settings
+// ghi localStorage nhưng thư viện không đọc, nên chọn sáng rồi quay lại là tối.
+export function applyTheme() {
+  const saved = localStorage.getItem("mlib.theme");
+  if (saved === "light" || saved === "dark") {
+    document.documentElement.dataset.theme = saved;
+  }
+}
+applyTheme();
+
+export function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("mlib.theme", next);
+  return next;
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${BASE}${path}`, {
@@ -13,7 +30,7 @@ async function request(path, options = {}) {
       const body = await response.json();
       if (body.detail) detail = body.detail;
     } catch {
-      /* phản hồi không phải JSON: giữ nguyên thông điệp mặc định */
+      /* phản hồi không phải JSON: giữ thông điệp mặc định */
     }
     throw new Error(detail);
   }
@@ -51,6 +68,35 @@ export function subscribeEvents(onEvent) {
   return source;
 }
 
+// Icon vẽ bằng SVG một nét, thay cho ký tự Unicode (←, →, ◐) vì chúng đổi nét
+// và đường cơ sở giữa Windows, Android và iOS — người dùng thấy cả hai thiết bị.
+const PATHS = {
+  prev: "M14 5 L7 12 L14 19",
+  next: "M10 5 L17 12 L10 19",
+  theme: "M12 3 A9 9 0 0 1 12 21 Z M12 3 A9 9 0 0 0 12 21",
+  close: "M6 6 L18 18 M18 6 L6 18",
+  back: "M11 5 L4 12 L11 19 M4 12 H20",
+  download: "M12 4 V15 M7 11 L12 16 L17 11 M5 20 H19",
+};
+
+export function icon(name, { size = 18 } = {}) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", size);
+  svg.setAttribute("height", size);
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", PATHS[name] || PATHS.close);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  svg.append(path);
+  return svg;
+}
+
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
@@ -67,8 +113,12 @@ export function el(tag, attrs = {}, children = []) {
 }
 
 export function markCurrentNav() {
-  const here = location.pathname.endsWith("/") ? "index.html" : location.pathname.split("/").pop();
+  const here = location.pathname.endsWith("/")
+    ? "index.html"
+    : location.pathname.split("/").pop();
   for (const link of document.querySelectorAll(".nav a")) {
-    if (link.getAttribute("href") === here) link.setAttribute("aria-current", "page");
+    if (link.getAttribute("href").split("?")[0] === here) {
+      link.setAttribute("aria-current", "page");
+    }
   }
 }

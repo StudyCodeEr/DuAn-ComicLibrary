@@ -9,7 +9,7 @@ web
 ## Stack
 
 Backend Python (FastAPI + uvicorn + SQLite). Frontend: HTML + CSS + ES modules thuần,
-Alpine.js vendored vào repo, **không build step** (không npm/bundler). Vỏ desktop Tauri (Rust)
+**không thư viện JavaScript nào** và **không build step** (không npm/bundler). Bản đầu dự định vendor Alpine.js; khi dựng xong thì không có bề mặt nào cần lớp reactivity, nên nó bị bỏ — cách đọc nghiêm hơn của ràng buộc 100% offline. Vỏ desktop Tauri (Rust)
 bọc chính UI web ở giai đoạn cuối. Quyết định này đã được chốt trong kế hoạch đại tu đã duyệt,
 không phải suy đoán.
 

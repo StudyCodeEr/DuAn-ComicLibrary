@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -55,6 +55,17 @@ def create_app() -> FastAPI:
         @app.get("/", include_in_schema=False)
         def index() -> FileResponse:
             return FileResponse(web_dir / "index.html")
+
+        @app.get("/favicon.ico", include_in_schema=False)
+        def favicon() -> FileResponse:
+            """app_icon.ico la cam ket thuong hieu, khong phai favicon rong."""
+            for candidate in (
+                paths.app_dir() / "app_icon.ico",
+                paths.repo_root() / "app_icon.ico",
+            ):
+                if candidate.is_file():
+                    return FileResponse(candidate, media_type="image/x-icon")
+            raise HTTPException(404, "khong tim thay app_icon.ico")
 
         @app.get("/{page_name}.html", include_in_schema=False)
         def page(page_name: str) -> FileResponse:

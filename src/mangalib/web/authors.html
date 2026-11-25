@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tác giả · Manga Local Library</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Manga <span>Local Library</span></div>
+  <nav class="nav">
+    <a href="index.html">Thư viện</a>
+    <a href="authors.html">Tác giả</a>
+    <a href="downloads.html">Tải về</a>
+    <a href="settings.html">Cài đặt</a>
+  </nav>
+  <input id="q" class="search" type="text" placeholder="Lọc tên tác giả…" autocomplete="off">
+</header>
+
+<main>
+  <h1 class="page">Tác giả và họa sĩ</h1>
+  <div class="count" id="count" style="padding-inline:0">Đang tải…</div>
+  <div class="people" id="people"></div>
+</main>
+
+<script type="module" src="/static/js/authors.js"></script>
+</body>
+</html>

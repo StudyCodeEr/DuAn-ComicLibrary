@@ -1,9 +1,8 @@
 // Trình đọc: cuộn dọc, lazy-load, zoom bằng biến CSS, tự lưu vị trí đọc.
 //
-// Bản Flet cũ nạp TOÀN BỘ ảnh của chương vào RAM và phải lặp lại mọi control để
-// đổi kích thước khi zoom. Ở đây trình duyệt làm sẵn cả hai: `loading="lazy"` và
-// `img { width: min(var(--page-width), 100%) }`.
-import { api, el, subscribeEvents } from "./api.js";
+// Bản Flet cũ nạp TOÀN BỘ ảnh của chương vào RAM và phải lặp lại mọi control khi
+// zoom. Ở đây trình duyệt làm sẵn cả hai.
+import { api, el, icon, subscribeEvents, toggleTheme } from "./api.js";
 
 const slug = new URLSearchParams(location.search).get("slug");
 const pagesBox = document.getElementById("pages");
@@ -12,7 +11,12 @@ const chapterSelect = document.getElementById("chapters");
 const positionLabel = document.getElementById("pos");
 const zoom = document.getElementById("zoom");
 
-const state = { manga: null, chapterId: null, pages: [], current: 0 };
+document.getElementById("back").append(icon("back"));
+document.getElementById("prev").append(icon("prev"));
+document.getElementById("next").append(icon("next"));
+document.getElementById("theme").append(icon("theme"));
+
+const state = { manga: null, chapterId: null, pages: [], current: 0, observer: null };
 
 if (!slug) {
   titleBox.textContent = "Thiếu tham số ?slug=";
@@ -48,7 +52,9 @@ async function start() {
 
 async function openChapter(chapterId, startPage = 0) {
   if (!chapterId) {
-    pagesBox.replaceChildren(el("div", { class: "empty-state", text: "Truyện chưa có chương nào." }));
+    pagesBox.replaceChildren(
+      el("div", { class: "empty-state", text: "Truyện chưa có chương nào." }),
+    );
     return;
   }
   state.chapterId = chapterId;
@@ -69,6 +75,8 @@ async function openChapter(chapterId, startPage = 0) {
       }),
     ),
   );
+
+  watchPages();
   updatePosition(startPage);
   if (startPage > 0) {
     pagesBox.children[Math.min(startPage, pagesBox.children.length - 1)]?.scrollIntoView();
@@ -77,39 +85,73 @@ async function openChapter(chapterId, startPage = 0) {
   }
 }
 
-function updatePosition(index) {
-  state.current = index;
-  positionLabel.textContent = state.pages.length
-    ? `${index + 1}/${state.pages.length}`
-    : "";
+/* Trang đang đọc = ảnh đang nằm ở vùng trên của khung nhìn.
+   IntersectionObserver thay cho việc gọi getBoundingClientRect() trên từng ảnh
+   trong mỗi nhịp cuộn: với chương 51 trang, cách cũ là 51 lần buộc tính lại
+   layout mỗi lần cuộn, ngay trên điện thoại. */
+function watchPages() {
+  state.observer?.disconnect();
+  state.observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          updatePosition(Number(entry.target.dataset.idx));
+          scheduleSave();
+          break;
+        }
+      }
+    },
+    { rootMargin: "-10% 0px -80% 0px", threshold: 0 },
+  );
+  for (const img of pagesBox.children) state.observer.observe(img);
 }
 
-// Trang đang đọc = ảnh gần đỉnh khung nhìn nhất.
+function updatePosition(index) {
+  state.current = index;
+  positionLabel.textContent = state.pages.length ? `${index + 1}/${state.pages.length}` : "";
+}
+
 let saveTimer = 0;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    if (state.chapterId) {
+      api.saveProgress(slug, state.chapterId, state.current).catch(() => {});
+    }
+  }, 900);
+}
+
+/* Chrome lùi đi khi đang đọc, hiện lại khi chạm hoặc khi dừng cuộn — như Mihon
+   và Komga. Trước đây nó đứng cố định suốt và chiếm 96px vĩnh viễn. */
+let chromeTimer = 0;
+function showChrome(autoHide = true) {
+  document.body.dataset.chrome = "shown";
+  clearTimeout(chromeTimer);
+  if (autoHide) {
+    chromeTimer = setTimeout(() => {
+      document.body.dataset.chrome = "hidden";
+    }, 1600);
+  }
+}
+
 window.addEventListener(
   "scroll",
   () => {
-    let best = 0;
-    let bestDistance = Infinity;
-    for (const img of pagesBox.children) {
-      const distance = Math.abs(img.getBoundingClientRect().top);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = Number(img.dataset.idx);
-      }
-    }
-    if (best !== state.current) updatePosition(best);
-
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      if (state.chapterId) api.saveProgress(slug, state.chapterId, state.current).catch(() => {});
-    }, 800);
+    document.body.dataset.chrome = "hidden";
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(() => showChrome(false), 900);
   },
   { passive: true },
 );
 
+pagesBox.addEventListener("click", () => {
+  const hidden = document.body.dataset.chrome === "hidden";
+  if (hidden) showChrome();
+  else document.body.dataset.chrome = "hidden";
+});
+
 function step(delta) {
-  const ids = state.manga.chapters.map((c) => c.id);
+  const ids = state.manga.chapters.map((chapter) => chapter.id);
   const next = ids[ids.indexOf(state.chapterId) + delta];
   if (next) openChapter(next, 0);
 }
@@ -134,14 +176,7 @@ if (savedZoom) {
   document.documentElement.style.setProperty("--page-width", `${savedZoom}px`);
 }
 
-const themeButton = document.getElementById("theme");
-const savedTheme = localStorage.getItem("mlib.theme");
-if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-themeButton.addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("mlib.theme", next);
-});
+document.getElementById("theme").addEventListener("click", toggleTheme);
 
 // Chương đang tải dở: khi worker báo xong thì nạp lại danh sách trang.
 subscribeEvents((event) => {

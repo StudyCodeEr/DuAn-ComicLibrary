@@ -4,19 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Thư viện · Manga Local Library</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">Manga <span>Local Library</span></div>
-  <input id="q" class="search" type="text" placeholder="Tìm tên truyện hoặc tên tác giả…" autocomplete="off">
   <nav class="nav">
     <a href="index.html">Thư viện</a>
+    <a href="authors.html">Tác giả</a>
     <a href="downloads.html">Tải về</a>
     <a href="settings.html">Cài đặt</a>
   </nav>
+  <input id="q" class="search" type="text" placeholder="Tìm tên truyện hoặc tên tác giả…" autocomplete="off">
 </header>
+
+<section class="continue" id="continue" hidden>
+  <h2>Đọc tiếp</h2>
+  <div class="strip" id="strip"></div>
+</section>
 
 <div class="filters" id="filters"></div>
 <div class="count" id="count">Đang tải…</div>

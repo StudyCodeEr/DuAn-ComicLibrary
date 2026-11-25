@@ -1,4 +1,4 @@
-// Thư viện: lưới bìa, tìm kiếm, lọc thể loại ba trạng thái, lọc theo tác giả.
+// Thư viện: dải "Đọc tiếp", lưới bìa, tìm kiếm, lọc thể loại ba trạng thái.
 import { api, el, markCurrentNav } from "./api.js";
 
 markCurrentNav();
@@ -8,6 +8,8 @@ const filters = document.getElementById("filters");
 const countLine = document.getElementById("count");
 const moreButton = document.getElementById("more");
 const search = document.getElementById("q");
+const continueBox = document.getElementById("continue");
+const continueStrip = document.getElementById("strip");
 
 const params = new URLSearchParams(location.search);
 const state = {
@@ -16,9 +18,10 @@ const state = {
   tagStates: new Map(), // tên -> 1 (bắt buộc có) | 2 (loại trừ)
   page: 1,
   perPage: 40,
-  total: 0,
 };
 search.value = state.q;
+
+const FINISHED = 0.999;
 
 function tagsParam(wanted) {
   return [...state.tagStates.entries()]
@@ -27,46 +30,53 @@ function tagsParam(wanted) {
     .join(",");
 }
 
-function card(item) {
-  const progress = item.progress;
-  const cover = item.cover
-    ? el("img", { src: item.cover, alt: "", loading: "lazy", decoding: "async" })
+function coverNode(item, alt = "") {
+  return item.cover
+    ? el("img", { src: item.cover, alt, loading: "lazy", decoding: "async" })
     : el("div", { class: "empty", text: "chưa có bìa" });
+}
 
-  const inner = [cover];
-  if (item.chapter_count) {
-    inner.push(el("div", { class: "badge", text: `${item.chapter_count} ch` }));
-  }
-  if (progress && progress.ratio > 0) {
+/* Tiến độ có ba trạng thái phân biệt được, không phải một dải bật/tắt:
+   chưa đọc · đang đọc (chương mấy) · đã đọc hết. */
+function progressFacts(item) {
+  const progress = item.progress;
+  if (!progress) return { label: "Chưa đọc", ratio: 0, done: false };
+  if (progress.ratio >= FINISHED) return { label: "Đã đọc hết", ratio: 1, done: true };
+  const where = progress.chapter_title ? `Đang đọc · ${progress.chapter_title}` : "Đang đọc";
+  return { label: where, ratio: progress.ratio, done: false };
+}
+
+function card(item) {
+  const facts = progressFacts(item);
+  const inner = [coverNode(item)];
+
+  // Badge mang CẢ số chương và số trang: người dùng nói cả hai phải thấy ngay.
+  inner.push(
+    el("div", {
+      class: "badge",
+      text: `${item.chapter_count} ch · ${item.page_count} tr`,
+      title: `${item.chapter_count} chương, ${item.page_count} trang`,
+    }),
+  );
+
+  if (facts.ratio > 0) {
     inner.push(
-      el("div", { class: "progress" }, [
-        el("i", { style: `width:${Math.min(100, Math.round(progress.ratio * 100))}%` }),
+      el("div", { class: "progress", "data-done": facts.done ? "1" : "0" }, [
+        el("i", { style: `width:${Math.min(100, Math.round(facts.ratio * 100))}%` }),
       ]),
     );
   }
 
-  const byline = item.authors.length
-    ? el("div", { class: "by" }, [
-        el("a", {
-          href: `index.html?author=${encodeURIComponent(item.authors[0].name)}`,
-          text: item.authors[0].name,
-          title: "Xem truyện khác của tác giả này",
-        }),
-      ])
-    : null;
-
   return el(
     "a",
-    {
-      class: "card",
-      href: `reader.html?slug=${encodeURIComponent(item.slug)}`,
-      title: item.title,
-    },
+    { class: "card", href: `reader.html?slug=${encodeURIComponent(item.slug)}`, title: item.title },
     [
       el("div", { class: "cover" }, inner),
       el("div", { class: "meta" }, [
         el("div", { class: "title", text: item.title }),
-        byline,
+        el("div", { class: "stat" }, [
+          el("b", { "data-done": facts.done ? "1" : "0", text: facts.label }),
+        ]),
         el(
           "div",
           { class: "tags" },
@@ -77,12 +87,41 @@ function card(item) {
   );
 }
 
+function resumeCard(item) {
+  const facts = progressFacts(item);
+  return el(
+    "a",
+    { class: "resume", href: `reader.html?slug=${encodeURIComponent(item.slug)}`, title: item.title },
+    [
+      coverNode(item),
+      el("div", { class: "body" }, [
+        el("div", { class: "t", text: item.title }),
+        el("div", { class: "c", text: facts.label }),
+        el("div", { class: "go", text: "Đọc tiếp →" }),
+      ]),
+    ],
+  );
+}
+
+/* Dải "Đọc tiếp": câu thứ hai của FIRST VIEWPORT, và là thứ phân biệt thư viện
+   này với một bức tường poster — truyện dở nằm ngay trên cùng. */
+async function renderContinue() {
+  const data = await api.library({ sort: "last_read", per_page: 12 });
+  const resuming = data.items.filter((item) => item.progress && item.progress.ratio < FINISHED);
+  if (!resuming.length) {
+    continueBox.hidden = true;
+    return;
+  }
+  continueBox.hidden = false;
+  continueStrip.replaceChildren(...resuming.map(resumeCard));
+}
+
 async function renderChips() {
   const tags = await api.tags();
-  filters.replaceChildren();
+  const chips = [];
 
   if (state.author) {
-    filters.append(
+    chips.push(
       el("button", {
         class: "chip",
         "data-state": "1",
@@ -110,8 +149,9 @@ async function renderChips() {
       chip.dataset.state = String(next);
       reload();
     });
-    filters.append(chip);
+    chips.push(chip);
   }
+  filters.replaceChildren(...chips);
 }
 
 async function load({ append = false } = {}) {
@@ -124,15 +164,12 @@ async function load({ append = false } = {}) {
     per_page: state.perPage,
   });
 
-  state.total = data.total;
   if (!append) grid.replaceChildren();
   for (const item of data.items) grid.append(card(item));
 
-  if (!data.total) {
-    countLine.textContent = "Thư viện trống. Dán một link ở tab Tải về để bắt đầu.";
-  } else {
-    countLine.textContent = `${grid.children.length} / ${data.total} truyện`;
-  }
+  countLine.textContent = data.total
+    ? `${grid.children.length} / ${data.total} truyện`
+    : "Thư viện trống. Dán một link ở tab Tải về để bắt đầu.";
   moreButton.hidden = grid.children.length >= data.total;
 }
 
@@ -157,5 +194,8 @@ moreButton.addEventListener("click", () => {
   load({ append: true });
 });
 
+renderContinue().catch(() => {
+  continueBox.hidden = true;
+});
 renderChips().catch(() => {});
 reload();

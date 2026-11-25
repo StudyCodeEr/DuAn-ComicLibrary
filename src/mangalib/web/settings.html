@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cài đặt · Manga Local Library</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
@@ -12,6 +12,7 @@
   <div class="brand">Manga <span>Local Library</span></div>
   <nav class="nav">
     <a href="index.html">Thư viện</a>
+    <a href="authors.html">Tác giả</a>
     <a href="downloads.html">Tải về</a>
     <a href="settings.html">Cài đặt</a>
   </nav>
@@ -36,9 +37,10 @@
       Dùng khi một site cần đăng nhập hoặc chặn tự động: mở chương trên trình duyệt của bạn rồi bấm
       nút nổi. Cần Tampermonkey hoặc Violentmonkey.
     </p>
-    <a href="/static/userscript/mangalib.user.js">
-      <button class="primary">Cài userscript</button>
-    </a>
+    <a class="row" href="/static/userscript/mangalib.user.js"
+       style="padding:8px 14px;border:1px solid var(--accent);border-radius:8px;
+              background:var(--accent);color:var(--accent-ink);font-weight:600;
+              font-size:var(--fs-sm);display:inline-flex;width:auto">Cài userscript</a>
   </div>
 
   <div class="panel">

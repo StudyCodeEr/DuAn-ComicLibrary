@@ -2,374 +2,140 @@
 
 # Comic Library
 
-**Ứng dụng desktop tải truyện tranh, quản lý thư viện cục bộ và phát nội dung sang điện thoại trong cùng mạng LAN.**
+**Tải truyện tranh về máy, quản lý thư viện cục bộ, và đọc trên cả PC lẫn điện thoại — từ một server chạy ngay trên máy bạn.**
 
-![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
-![Flet](https://img.shields.io/badge/UI-Flet%200.24.1-02569B)
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/DB-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
-![Build](https://img.shields.io/badge/Build-v2.5.3-success)
 
 </div>
 
 ---
 
-## Mục lục
+## Dự án này là gì
 
-- [Tổng quan](#tổng-quan)
-- [Tính năng](#tính-năng)
-- [Kiến trúc](#kiến-trúc)
-- [Luồng tải truyện](#luồng-tải-truyện)
-- [Cấu trúc dự án](#cấu-trúc-dự-án)
-- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
-- [Cài đặt](#cài-đặt)
-- [Cấu hình](#cấu-hình)
-- [Tham chiếu API](#tham-chiếu-api)
-- [Cơ sở dữ liệu](#cơ-sở-dữ-liệu)
-- [Đóng gói ứng dụng](#đóng-gói-ứng-dụng)
-- [Xử lý sự cố](#xử-lý-sự-cố)
-- [Ghi chú kỹ thuật](#ghi-chú-kỹ-thuật)
-- [Miễn trừ trách nhiệm](#miễn-trừ-trách-nhiệm)
+Một ứng dụng cá nhân, chạy hoàn toàn trên máy bạn:
 
----
+- **Tải truyện** từ một link. Metadata (tên truyện, tác giả, thể loại, bìa, danh sách chương) lấy bằng HTTP thuần. Browser chỉ được mở ở đúng một bước — phân giải danh sách URL ảnh của từng chương — rồi đóng ngay; ảnh được tải song song bằng HTTP nên nhận **file gốc, không re-encode**.
+- **Thư viện** có tag ba trạng thái (bắt buộc có / loại trừ / bỏ qua), tác giả và họa sĩ riêng, tìm kiếm khớp cả tên truyện lẫn tên tác giả **không dấu cũng ra**.
+- **Đọc** trên trình duyệt: PC và điện thoại dùng **cùng một UI**, và **vị trí đọc đồng bộ** giữa hai thiết bị.
+- **Không dịch vụ bên ngoài**, không tài khoản, không đồng bộ ra Internet. Mất mạng vẫn đọc bình thường.
 
-## Tổng quan
+## Chạy thử
 
-Manga Local Library là ứng dụng desktop viết bằng Python, đảm nhiệm ba vai trò trong cùng một tiến trình:
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e ".[dev]"
 
-| Vai trò | Thành phần | Mô tả |
-| --- | --- | --- |
-| **Downloader** | Selenium + Chrome headless | Phân tích trang truyện, bóc tách danh sách chương và tải toàn bộ ảnh về máy. |
-| **Local Library** | SQLite + Flet Reader | Lập chỉ mục truyện đã tải kèm thẻ (tag), tìm kiếm nâng cao và đọc truyện ngay trong app. |
-| **LAN Server** | FastAPI + UDP Discovery | Mở REST API để ứng dụng điện thoại trong cùng mạng tự tìm thấy máy tính, duyệt thư viện và gửi lệnh tải về PC. |
+mangalib app            # server + khay hệ thống + cửa sổ app
+mangalib serve          # chỉ server, mở http://127.0.0.1:8000 bằng trình duyệt
+```
 
-Toàn bộ dữ liệu nằm trên máy người dùng: không có máy chủ trung gian, không đồng bộ ra ngoài.
+Các lệnh khác:
 
----
+| Lệnh | Việc |
+|---|---|
+| `mangalib probe <url>` | Thử lấy metadata của một link, **không mở browser**. Chạy cái này trước khi nghi code sai |
+| `mangalib download <url>` | Tải truyện. `--dry-run` chỉ in metadata, `--limit N` giới hạn số chương, `--headful` hiện cửa sổ browser |
+| `mangalib scan` | Dựng lại DB từ thư viện trên đĩa. `--prune` bỏ truyện không còn thư mục, `--reset` dời DB cũ sang một bên |
+| `mangalib doctor-paths` | In mọi đường dẫn đang dùng. Hữu ích khi nghi app ghi sai chỗ |
+| `mangalib app --autostart on\|off\|status` | Tự khởi động cùng Windows ở chế độ ẩn |
 
-## Tính năng
+## Đọc trên điện thoại
 
-**Tải truyện**
-
-- Dán link truyện và tải toàn bộ chương với một lần bấm.
-- Tự nhận diện tên truyện, thể loại (tag) và ảnh bìa; nếu không lấy được bìa gốc, hệ thống tạo bìa dự phòng từ trang đầu tiên.
-- Chọn định dạng ảnh đầu ra: `PNG`, `JPEG` (chất lượng 90) hoặc giữ nguyên file gốc.
-- Hạn chế bị phát hiện tự động hoá ở mức cơ bản: tuỳ biến User-Agent, tắt cờ `AutomationControlled`.
-
-**Thư viện & Trình đọc**
-
-- Thư viện dạng lưới với ảnh bìa và tìm kiếm theo tên.
-- Bộ lọc tag ba trạng thái: *bắt buộc có* (INCLUDE) / *loại trừ* (EXCLUDE) / *bỏ qua*.
-- Trình đọc tích hợp: cuộn liên tục, điều hướng chương, thanh zoom (0.2x – 1.0x), nền sáng/tối, ẩn/hiện giao diện.
-- Tự dò lại đường dẫn khi thư mục truyện bị di chuyển (`smart_path_resolve`).
-
-**Kết nối điện thoại**
-
-- Ứng dụng điện thoại tự tìm máy tính qua UDP broadcast, không cần nhập IP thủ công.
-- Điện thoại duyệt thư viện và đọc truyện trực tiếp từ ổ đĩa PC qua HTTP.
-- Điện thoại gửi link về PC; lệnh được xếp hàng đợi (`queue.Queue`) và xử lý lần lượt để tránh xung đột Selenium.
-
-**Hệ thống**
-
-- Thu nhỏ xuống System Tray thay vì thoát; menu tray để mở lại hoặc kết thúc ứng dụng.
-- Tuỳ chọn tự khởi động cùng Windows ở chế độ ẩn (tham số `--hidden`, ghi qua Registry `HKCU\...\Run`).
-- Tab **Console** hiển thị log hệ thống và log server theo thời gian thực (`stdout`/`stderr` được chuyển hướng vào UI).
-- Quản lý nguồn truyện ngay trong app: sửa link khi website đổi domain hoặc thêm nguồn mới.
-
----
+Mở tab **Cài đặt** trên máy chủ, quét mã QR bằng điện thoại. Một lần là xong: điện thoại được đặt cookie và dùng mãi. Máy chủ không cần token; thiết bị khác trong LAN thì cần.
 
 ## Kiến trúc
 
-```mermaid
-flowchart LR
-    WEB["Nguồn truyện<br/>(khai báo trong sites.json)"]
-    PHONE["Ứng dụng điện thoại<br/>(cùng mạng LAN)"]
-
-    subgraph PC["PC — Manga Local Library"]
-        UI["Flet UI<br/>Dashboard · Thư viện · Settings · Console"]
-        CTRL["AppController<br/>main.py"]
-        SEL["Selenium<br/>Chrome headless"]
-        FS[("Downloads/")]
-        DB[("SQLite<br/>manga_library.db")]
-        API["FastAPI :8000<br/>UDP Discovery :55555"]
-    end
-
-    UI --> CTRL
-    CTRL --> SEL
-    SEL --> WEB
-    CTRL --> FS
-    CTRL --> DB
-    API --> DB
-    API --> FS
-    PHONE <--> API
-    API -->|download_queue| CTRL
-```
-
-Ứng dụng chạy một tiến trình với nhiều luồng:
-
-| Luồng | Nhiệm vụ |
-| --- | --- |
-| Luồng chính | Vòng lặp giao diện Flet. |
-| `uvicorn` | Phục vụ FastAPI trên `0.0.0.0:8000`. |
-| `run_discovery_listener` | Lắng nghe UDP broadcast trên cổng `55555`. |
-| `monitor_remote_commands` | Lấy lệnh từ `download_queue` và chạy tải tuần tự. |
-| `pystray` | Biểu tượng System Tray. |
-| Luồng tải | Mỗi lần bấm "Khởi động tải xuống" sinh một luồng nền riêng. |
-
----
-
-## Luồng tải truyện
-
-1. Chuẩn hoá link và khởi tạo Chrome headless (`page_load_strategy = eager`).
-2. Mở trang truyện, lấy tên từ thẻ `h1` (dự phòng: `document.title`), làm sạch thành tên thư mục an toàn.
-3. Bóc tách tag từ khối "Thể loại"; không có tag thì gán `Chưa phân loại`.
-4. Tải ảnh bìa từ `style="background-image: url(...)"` hoặc thẻ `img` trong khối thông tin truyện.
-5. Dò nút "Bắt đầu đọc" để chuyển vào trang đọc.
-6. Lấy danh sách chương từ dropdown `#chapter-selector`, loại bỏ URL trùng và sắp xếp theo thứ tự tăng dần.
-7. Với từng chương: khoanh vùng container ảnh (`#chapter-content`, `.reading-content`, `.page-chapter`, …), lọc ảnh rác (logo, icon, avatar, banner, loader), tải ảnh bằng `requests.Session` kế thừa cookie từ Selenium, rồi lưu qua Pillow.
-8. Ghi bản ghi truyện kèm tag vào SQLite và làm mới thư viện trên UI.
-
-Kết quả trên ổ đĩa:
+Mỗi file một trách nhiệm, không file nào vượt ~260 dòng.
 
 ```
-Downloads/
-└── Ten_Truyen/
-    ├── cover.jpg
-    ├── Chuong 1/
-    │   ├── Trang_000.png
-    │   └── Trang_001.png
-    └── Chuong 2/
-        └── ...
+src/mangalib/
+├─ paths.py        ⭐ NGUỒN CHÂN LÝ DUY NHẤT của mọi đường dẫn
+├─ naming.py          tên file, slug, số chương, tên người (hàm thuần)
+├─ config.py          data/config.toml
+├─ errors.py          cây lỗi có ngữ cảnh
+├─ cli.py             probe · download · scan · serve · app · doctor-paths
+├─ db/                engine (WAL + lock ghi) · models · schema.sql · 8 repo
+├─ meta/              tầng HTTP: client (curl_cffi) · parse · rules (YAML) · generic
+├─ pagegrab/          tầng browser: CHỈ phân giải URL ảnh, rồi đóng ngay
+├─ download/          fetcher (song song, ghi nguyên tử) · images · pipeline
+├─ library/           metadata.json của mỗi truyện · scanner
+├─ jobs/              hàng đợi một worker · bus sự kiện cho SSE
+├─ api/               FastAPI: library · jobs+SSE · settings · discovery
+├─ web/               UI: HTML + CSS + ES module thuần, KHÔNG build step
+└─ shell/             khay hệ thống · cửa sổ Edge --app · autostart
 ```
 
----
+### Tám quy tắc biên giới
 
-## Cấu trúc dự án
+Đây là nội dung thật của bản đại tu, không phải lời khuyên chung:
+
+1. **Chỉ `paths.py` được tính đường dẫn.** Bản cũ có năm định nghĩa "thư mục gốc" xung đột, một cái lệch hẳn một cấp.
+2. **Module không được làm I/O lúc import.** Bản cũ gọi `os.makedirs("logs")` ở module scope với đường dẫn tương đối, nên tự khởi động cùng Windows (cwd = `C:\Windows\System32`) làm app chết **ngay lúc import**.
+3. **Không connection DB sống lâu; mọi lần ghi qua một lock.** Bản cũ dùng một connection với `check_same_thread=False` từ ba luồng, không lock nào.
+4. **Không nuốt lỗi.** `ruff` bật `E722` + `BLE001` nên quy tắc này do máy kiểm, không phải lời hứa. Bản cũ có 27 chỗ `except:` trần.
+5. **DB lưu `slug`, không lưu đường dẫn tuyệt đối.** Di chuyển cả thư viện sang ổ khác chỉ cần đổi `data_root`.
+6. **Mỗi thư mục truyện tự mô tả được** (`metadata.json`) → mất DB không mất dữ liệu, kể cả tag và tác giả bạn sửa tay.
+7. **Rule của site thật không vào repo** — nằm ở `data/sites/*.yml` (gitignored).
+8. **Chỉ `pagegrab/` được chạm browser, và import lười** → mở app để *đọc* truyện không bao giờ nạp Playwright.
+
+### Một thiết kế đáng nói
+
+`expected_page_count` của một chương lấy từ **số trang mà reader của site tự khai báo**, không phải số ảnh ta lấy được. Nhờ vậy một lần cuộn chưa đủ sẽ ghi `partial` và lần sau tự vá — thay vì báo `complete` sai. Bản cũ báo `"✅ Xong: N ảnh"` với N là số URL tìm thấy, nên một chương trắng vẫn báo thành công.
+
+## Thêm một nguồn truyện
+
+Thêm một file `.yml` vào `data/sites/`, **không sửa code**. Mẫu: `src/mangalib/sites/example.yml`. Mọi selector, nhãn, bộ lọc và danh sách domain đều là dữ liệu, nên web đổi giao diện thì sửa file cấu hình.
+
+Khi một site chặn truy cập tự động: cài userscript ở tab **Cài đặt**, mở chương trên trình duyệt của chính bạn rồi bấm nút nổi — trang đã render sẵn nên không cần automation nào.
+
+## Dữ liệu nằm ở đâu
 
 ```
-MangaDownloader_Project/
-├── main.py                     # Điểm khởi chạy: AppController, Selenium, uvicorn, System Tray
-├── server_pc.py                # FastAPI + UDP Discovery + hàng đợi lệnh từ điện thoại
-├── gui/
-│   └── app_layout.py           # MangaApp: giao diện Flet, thư viện, trình đọc, settings
-├── core/
-│   ├── database.py             # DatabaseManager: schema, lưu truyện, tìm kiếm nâng cao
-│   ├── domain_manager.py       # Đọc/ghi sites.json, tự cập nhật khi nguồn đổi domain
-│   └── image_manager.py        # Chuyển đổi và lưu ảnh (PNG/JPEG/WEBP/gốc)
-├── connectors/
-│   ├── base.py                 # BaseConnector: giao diện chuẩn cho mỗi nguồn truyện
-│   └── mangaconnect.py         # Connector dựa trên DrissionPage (xem Ghi chú kỹ thuật)
-├── utils/
-│   ├── logger.py               # Ghi log ra logs/log_YYYY-MM-DD.txt và crash report
-│   ├── startup_helper.py       # Bật/tắt tự khởi động qua Windows Registry
-│   ├── system_helper.py        # get_app_dir(): đường dẫn gốc khi chạy .py và .exe
-│   └── text_helper.py          # clean_filename(): tên file an toàn cho Windows
-├── assets/                     # Ảnh nền cho trình đọc
-├── sites.example.json          # Mẫu khai báo nguồn truyện (không chứa địa chỉ thật)
-├── config.json                 # Thư mục lưu truyện
-├── manga_library.db            # SQLite (tự tạo)
-├── requirements.txt
-└── *.spec                      # Cấu hình PyInstaller của các bản build
+data/                     (toàn bộ được .gitignore)
+├─ library/<slug>/<chương>/001.webp      truyện đã tải
+├─ library/<slug>/metadata.json          mô tả truyện, dựng lại DB được
+├─ library.db · config.toml · logs/
+├─ sites/*.yml                           rule của nguồn truyện
+└─ browser/                              profile Edge khi cần phân giải URL
 ```
 
----
+Đổi chỗ lưu: đặt biến môi trường `MANGALIB_DATA`.
 
-## Yêu cầu hệ thống
+## Đóng gói
 
-| Thành phần | Yêu cầu |
-| --- | --- |
-| Hệ điều hành | Windows 10/11 (System Tray và tự khởi động phụ thuộc Windows API) |
-| Python | 3.11 trở lên (dự án đang phát triển trên 3.14) |
-| Trình duyệt | Google Chrome — ChromeDriver được `webdriver-manager` tải tự động |
-| Mạng | PC và điện thoại cùng một mạng LAN; mở cổng TCP `8000` và UDP `55555` |
-
----
-
-## Cài đặt
-
-```bat
-:: 1. Tạo môi trường ảo
-python -m venv venv
-venv\Scripts\activate
-
-:: 2. Cài thư viện
-pip install -r requirements.txt
-
-:: 3. Cài thêm thư viện System Tray (chưa có trong requirements.txt)
-pip install pystray
-
-:: 4. Chuẩn bị danh sách nguồn truyện
-copy sites.example.json sites.json
-
-:: 5. Chạy ứng dụng
-python main.py
+```powershell
+pyinstaller tools/mangalib.spec --noconfirm
 ```
 
-Sau khi mở app, vào tab **Settings → Quản lý nguồn truyện** để thay URL mẫu bằng địa chỉ thật, hoặc thêm nguồn mới.
+`--onedir` có chủ đích: `data/` nằm cạnh file `.exe` thay vì trong thư mục tạm.
 
-> Nếu `sites.json` chưa tồn tại, ứng dụng tự sinh file này từ `sites.example.json` ở lần chạy đầu tiên.
+`shell-tauri/` là scaffold cho vỏ desktop bằng Rust — **chưa từng được biên dịch** vì máy phát triển không có Rust toolchain. Vỏ đang dùng là `mangalib app`: khay hệ thống + cửa sổ Edge `--app`, không thêm dependency nào.
 
----
+## Thiết kế giao diện
 
-## Cấu hình
+Hướng hình ảnh được chốt qua plugin [impeccable](https://github.com/pbakaus/impeccable): sau khi xem các hướng khác, chủ dự án chọn **chuẩn của hạng mục, chơi thẳng** — quen mắt một cách có chủ đích, và khác biệt đến từ độ tinh của thi công. Thước đo: **Mihon/Tachiyomi** và **Komga/Kavita**.
 
-### `config.json`
+Mọi màu nằm trong một khối `:root` của `web/app.css`, thay cho 43 mã hex rải rác trong bản cũ. Không bóng đổ, không gradient; phân vùng bằng đường kẻ hairline. Tiến độ đọc là một dải 2px sát đáy ảnh bìa, đọc được ở cỡ thumbnail. Font dùng system stack nên đủ dấu tiếng Việt và không tải gì từ Internet.
 
-```json
-{
-    "download_path": "D:\\MangaDownloader_Project\\Downloads"
-}
-```
+Chi tiết: `PRODUCT.md` (product truth) và `.impeccable/surfaces/` (direction contract).
 
-| Khoá | Mặc định | Ý nghĩa |
-| --- | --- | --- |
-| `download_path` | `Downloads` | Thư mục lưu truyện. Thay đổi được trong tab Settings. |
+## Khi có vấn đề
 
-### `sites.json`
+| Hiện tượng | Làm gì |
+|---|---|
+| Không biết app ghi file vào đâu | `mangalib doctor-paths` |
+| Nghi scraper sai | `mangalib probe <url>` rồi `mangalib download <url> --dry-run` |
+| Chương bị thiếu ảnh | Chạy lại `mangalib download` — chương `partial` sẽ được vá, chương `complete` được bỏ qua |
+| Site đòi đăng nhập hoặc chặn | `--headful` để tự vượt một lần, hoặc dùng userscript |
+| DB báo schema lệch | `mangalib scan --reset` (dời file cũ sang một bên, không xoá) |
+| Điện thoại không thấy máy chủ | Mở cổng TCP 8000 và UDP 55555 trong Windows Firewall |
 
-Danh sách nguồn truyện, mỗi khoá là một ID nguồn:
-
-```json
-{
-    "site_chinh": {
-        "name": "Nguồn chính (Tên hiển thị)",
-        "url": "https://example.com",
-        "connector": "mangaconnect"
-    }
-}
-```
-
-| Trường | Ý nghĩa |
-| --- | --- |
-| `name` | Tên hiển thị trong giao diện. |
-| `url` | Link trang chủ. `check_and_update_domain()` tự ghi lại URL mới nếu nguồn redirect sang domain khác. |
-| `connector` | Bộ xử lý dành cho nguồn đó. |
-
-> **Lưu ý:** `sites.json` là file cấu hình cục bộ và đã được `.gitignore` loại trừ, nên địa chỉ thật không bị đưa lên repository. Chỉ `sites.example.json` được commit.
-
----
-
-## Tham chiếu API
-
-Server lắng nghe tại `http://<IP-LAN-của-PC>:8000`.
-
-| Method | Endpoint | Mô tả | Phản hồi |
-| --- | --- | --- | --- |
-| `GET` | `/library` | Danh sách truyện kèm ảnh bìa và tag, mới nhất trước. | `[{ "title", "cover", "tags": [] }]` |
-| `GET` | `/manga/{manga_name}` | Danh sách chương và URL ảnh của một truyện. | `[{ "name", "images": [] }]` |
-| `POST` | `/download` | Đẩy link vào hàng đợi để PC tải. Body: `{ "url": "..." }` | `{ "status": "ok", "message", "url" }` |
-| `GET` | `/images/...` | Phục vụ tĩnh toàn bộ thư mục `Downloads/`. | Nội dung ảnh |
-
-### UDP Discovery
-
-| Thuộc tính | Giá trị |
-| --- | --- |
-| Cổng | `55555` (UDP broadcast) |
-| Điện thoại gửi | `DISCOVER_MANGA_SERVER` |
-| PC trả lời | `I_AM_MANGA_SERVER` |
-
-Ví dụ gửi lệnh tải từ dòng lệnh:
-
-```bash
-curl -X POST http://192.168.1.10:8000/download \
-     -H "Content-Type: application/json" \
-     -d '{"url": "https://example.com/truyen/abc"}'
-```
-
----
-
-## Cơ sở dữ liệu
-
-SQLite tại `manga_library.db`, nằm cùng thư mục với `main.py` (hoặc cùng thư mục `.exe` khi đã đóng gói).
-
-```mermaid
-erDiagram
-    manga ||--o{ manga_tags : "có"
-    tags  ||--o{ manga_tags : "thuộc"
-
-    manga {
-        INTEGER id PK
-        TEXT url "UNIQUE"
-        TEXT title
-        TEXT path
-        TEXT cover_path
-        TIMESTAMP created_at
-    }
-    tags {
-        INTEGER id PK
-        TEXT name "UNIQUE COLLATE NOCASE"
-    }
-    manga_tags {
-        INTEGER manga_id FK
-        INTEGER tag_id FK
-    }
-```
-
-- `manga.url` là `UNIQUE`: tải lại cùng một truyện sẽ cập nhật bản ghi cũ thay vì tạo bản ghi trùng.
-- `tags.name` dùng `COLLATE NOCASE`, nên "Action" và "action" được xem là cùng một tag.
-- `search_advanced()` dựng truy vấn động: `LIKE` cho tên truyện, `IN` cho tag bắt buộc (logic AND) và `NOT IN` cho tag loại trừ.
-
----
-
-## Đóng gói ứng dụng
-
-Dùng `flet pack` thay vì gọi PyInstaller trực tiếp, để Flet nhúng đúng icon vào tiến trình `flet.exe` chạy ngầm trên Windows:
-
-```bat
-flet pack main.py ^
-  --icon "app_icon.ico" ^
-  --name "MangaLocalLibrary_v2.5.3" ^
-  --onedir ^
-  --add-data "assets;assets" ^
-  --hidden-import flet --hidden-import gui --hidden-import core --hidden-import utils ^
-  --hidden-import uvicorn.logging --hidden-import uvicorn.loops --hidden-import uvicorn.loops.auto ^
-  --hidden-import uvicorn.protocols --hidden-import uvicorn.protocols.http ^
-  --hidden-import uvicorn.protocols.http.auto ^
-  --hidden-import uvicorn.lifespan --hidden-import uvicorn.lifespan.on ^
-  --hidden-import selenium --hidden-import webdriver_manager --hidden-import requests ^
-  --hidden-import pystray --hidden-import PIL -y
-```
-
-Ba điểm bắt buộc khi build:
-
-1. `--icon` phải là file `.ico` để Windows hiển thị đúng icon trên Taskbar.
-2. `--add-data "assets;assets"` để trình đọc load được ảnh nền và logo.
-3. `--hidden-import pystray --hidden-import PIL` để System Tray hoạt động trong bản `.exe`.
-
-Nên dùng `--onedir`: dữ liệu (`Downloads/`, `manga_library.db`, `config.json`, `sites.json`) được ghi cạnh file `.exe` nhờ `get_app_dir()`, thay vì nằm trong thư mục tạm `_internal`.
-
----
-
-## Xử lý sự cố
-
-| Hiện tượng | Nguyên nhân thường gặp | Cách xử lý |
-| --- | --- | --- |
-| Điện thoại không tìm thấy PC | Firewall chặn UDP `55555` / TCP `8000`, hoặc hai thiết bị khác mạng | Mở cổng cho ứng dụng trong Windows Defender Firewall; tắt "AP Isolation" trên router |
-| Điện thoại báo đã gửi nhưng Console trống | PC có nhiều card mạng ảo (WSL, Docker, VirtualBox) khiến điện thoại gửi POST sai subnet | Tắt adapter ảo, hoặc nhập trực tiếp IP LAN đúng của PC trên app điện thoại |
-| `❌ Lỗi kết nối! Kiểm tra lại Link hoặc Mạng` | Link sai, nguồn đã đổi domain, hoặc nguồn chặn truy cập | Cập nhật URL trong **Settings → Quản lý nguồn truyện** |
-| `❌ Không tìm thấy chương nào!` | Nguồn đổi cấu trúc HTML (mất dropdown `#chapter-selector`) | Cập nhật lại bộ chọn trong `main.py` / `connectors/mangaconnect.py` |
-| Không có icon System Tray | Thiếu `pystray` | `pip install pystray` (bản `.exe` cần thêm `--hidden-import pystray`) |
-| Chrome và ChromeDriver lệch phiên bản | `webdriver-manager` còn cache driver cũ | Xoá thư mục `~/.wdm` để tải lại driver |
-| Ảnh lưu ra file `*_error.bin` | Pillow không đọc được dữ liệu ảnh (file lỗi hoặc không phải ảnh) | Thử lại với định dạng "Mặc định (Gốc)" |
-
-Log hệ thống: `logs/log_YYYY-MM-DD.txt`. Log sự cố nghiêm trọng: `crash_log.txt`.
-
----
-
-## Ghi chú kỹ thuật
-
-Những điểm nên biết khi tiếp tục phát triển dự án:
-
-- **Hai cơ chế bóc tách song song.** Luồng tải đang dùng trong `main.py` được viết trực tiếp bằng Selenium. Lớp `connectors/` (`BaseConnector` + `MangaConnectConnector`, dựa trên DrissionPage) là kiến trúc plugin đã thiết kế sẵn nhưng **chưa được `main.py` gọi tới**; trường `connector` trong `sites.json` hiện chỉ mang tính khai báo. Hợp nhất hai nhánh này là bước refactor tiếp theo rõ ràng nhất.
-- **`pystray` chưa có trong `requirements.txt`** dù `main.py` cần nó cho System Tray (phần import đã bọc `try/except` nên app vẫn chạy, chỉ mất tray).
-- **Cổng `8000` và `55555` đang hardcode** trong `main.py` và `server_pc.py`, chưa đưa ra `config.json`.
-- **`gui/dashboard/`, `gui/library/`, `gui/settings_console/`** chỉ còn file `.pyc` cũ, không còn mã nguồn — dấu vết của lần refactor tách `app_layout.py` chưa hoàn tất (xem `reports/plans/PLAN-app_layout_refactor.md`).
-- **`requirements.txt` và `build_instructions.txt` đang lưu ở encoding UTF-16**, nên khó đọc và khó diff bằng công cụ thông thường.
-- Tài liệu phân tích nội bộ (brainstorm, plan, debug report) nằm trong `reports/`.
-
----
+Log: `data/logs/log_YYYY-MM-DD.txt`. Lỗi nghiêm trọng: `data/logs/crash.log` (ghi thêm, không ghi đè).
 
 ## Miễn trừ trách nhiệm
 
-Đây là dự án cá nhân, phục vụ mục đích học tập và sử dụng offline trên thiết bị của chính người dùng. Phần mềm **không** đi kèm bất kỳ nguồn nội dung nào: người dùng tự khai báo nguồn trong `sites.json` và tự chịu trách nhiệm tuân thủ điều khoản sử dụng của website đó cũng như quy định về bản quyền tại nơi mình sinh sống. Vui lòng tải nội dung ở mức hợp lý để không gây ảnh hưởng tới hạ tầng của nhà cung cấp.
+Dự án cá nhân, phục vụ việc đọc offline trên thiết bị của chính người dùng. Phần mềm **không** đi kèm nguồn nội dung nào: người dùng tự khai báo nguồn trong `data/sites/` và tự chịu trách nhiệm tuân thủ điều khoản của website đó cũng như quy định bản quyền tại nơi mình sinh sống. Hãy tải ở mức hợp lý để không gây ảnh hưởng tới hạ tầng của nhà cung cấp.
