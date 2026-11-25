@@ -41,7 +41,8 @@ try:
     from mangalib.logging_setup import log_crash, setup_logging
     from core.image_manager import save_image
     from core.domain_manager import load_sites
-    from core.database import DatabaseManager 
+    from mangalib.db import engine, manga_repo, tag_repo
+    from mangalib.db.models import Manga
     from utils.text_helper import clean_filename
     
     # log_crash that nam trong mangalib.logging_setup (da import o tren).
@@ -312,9 +313,18 @@ class AppController(MangaApp):
                 except: pass
 
             try:
-                db = DatabaseManager()
-                db.save_manga(url, title, final_manga_path, cover_path=final_cover_path, tags=manga_tags)
-                db.close()
+                # DB luu slug (ten thu muc) chu khong luu duong dan tuyet doi,
+                # nen di chuyen ca thu vien chi can doi data_root (quy tac R5).
+                slug = os.path.basename(os.path.normpath(final_manga_path))
+                cover_file = (
+                    os.path.basename(final_cover_path) if final_cover_path else None
+                )
+                with engine.write() as conn:
+                    manga_id = manga_repo.upsert(
+                        conn,
+                        Manga(slug=slug, title=title, source_url=url, cover_file=cover_file),
+                    )
+                    tag_repo.set_for_manga(conn, manga_id, manga_tags)
                 self.log("💾 Đã lưu Thư viện!", "green")
                 self.cached_tags = None # Xóa cache cũ để lần sau mở lọc nó sẽ tự tải lại tag mới từ DB
                 # Gọi hàm load thư viện từ class cha
@@ -343,6 +353,7 @@ def main():
         # 2. Log chay mot chieu: logging -> handler -> tab Console.
         #    sys.stdout duoc tra lai cho he dieu hanh.
         setup_logging()
+        engine.init_db()
         attach_ui_console(my_app.log_server)
         
         print("🚀 Hệ thống đã sẵn sàng...") # Dòng này sẽ hiện lên Console Tab ngay lập tức

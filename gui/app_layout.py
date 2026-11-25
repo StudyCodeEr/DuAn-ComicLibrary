@@ -8,7 +8,7 @@ import logging
 from mangalib import config as app_config
 from mangalib import paths
 from core.domain_manager import load_sites, update_site_url, add_new_site
-from core.database import DatabaseManager
+from mangalib.db import engine, manga_repo, tag_repo
 from utils.startup_helper import is_startup_enabled, toggle_startup
 
 logger = logging.getLogger("mangalib.gui")
@@ -42,17 +42,6 @@ class MangaApp:
             self.build_ui()
         except Exception as e:
             raise e
-
-    # --- HÀM XỬ LÝ ĐƯỜNG DẪN THÔNG MINH ---
-    def smart_path_resolve(self, db_path):
-        """Do DB cu luu duong dan tuyet doi. Phase 2 luu slug nen ham nay se bi xoa."""
-        if os.path.exists(db_path):
-            return db_path, False
-        folder = os.path.basename(os.path.normpath(db_path))
-        moved = paths.library_dir() / folder
-        if moved.exists():
-            return str(moved), True
-        return db_path, False
 
     # --- CONFIG & SETUP ---
     def load_config(self):
@@ -536,17 +525,9 @@ class MangaApp:
 
     # --- READER LOGIC ---
     def open_reader(self, path, title, manga_id=None):
-        real_path, is_changed = self.smart_path_resolve(path)
-        if is_changed and manga_id:
-            try:
-                db = DatabaseManager()
-                db.cursor.execute("UPDATE manga SET path = ? WHERE id = ?", (real_path, manga_id))
-                new_cover = os.path.join(real_path, "cover.jpg")
-                if os.path.exists(new_cover):
-                    db.cursor.execute("UPDATE manga SET cover_path = ? WHERE id = ?", (new_cover, manga_id))
-                db.conn.commit()
-                db.close()
-            except Exception: pass
+        # Khong con khoi "tu sua duong dan trong DB" nua: DB luu slug, nen duong
+        # dan luon la paths.library_dir()/slug. SQL tho trong lop UI cung di theo.
+        real_path = path
 
         self.current_manga_path = real_path
         self.reader_title.value = title
@@ -691,7 +672,7 @@ class MangaApp:
         self.reader_list_view.controls.clear()
 
     def open_folder(self, path):
-        real_path, _ = self.smart_path_resolve(path)
+        real_path = path
         if os.path.exists(real_path):
             os.startfile(real_path)
 
@@ -717,13 +698,11 @@ class MangaApp:
         if self.cached_tags is not None and len(self.cached_tags) > 0:
             return self.cached_tags
         try:
-            db = DatabaseManager()
-            tags = db.get_all_tags()
-            db.close()
-            if tags: self.cached_tags = tags
-            else: self.cached_tags = []
-        except Exception as e:
-            print(f"Error loading tags: {e}")
+            with engine.read_only() as conn:
+                # list_all tra (ten, so truyen); UI cu chi can ten.
+                self.cached_tags = [name for name, _count in tag_repo.list_all(conn)]
+        except Exception as exc:
+            logger.error("Khong tai duoc danh sach the loai: %s", exc)
             return []
         return self.cached_tags
 
@@ -810,16 +789,30 @@ class MangaApp:
             self.tag_summary_row.controls.append(ft.Container(content=ft.Text(f"- {t}", size=12), bgcolor="#ef4444", padding=5, border_radius=5))
         self.tag_summary_row.update()
         
-        db = DatabaseManager()
-        results = db.search_advanced(keyword, include, exclude)
-        db.close()
+        with engine.read_only() as conn:
+            items, _total = manga_repo.search(
+                conn,
+                q=keyword or "",
+                include_tags=include,
+                exclude_tags=exclude,
+                per_page=200,
+            )
+        # Duong dan dung tu slug (quy tac R5), nen khong con cho nao luu path tuyet doi.
+        results = [
+            (
+                item.id,
+                item.title,
+                str(paths.manga_dir(item.slug)),
+                str(paths.manga_dir(item.slug) / item.cover_file) if item.cover_file else None,
+            )
+            for item in items
+        ]
         
         self.library_grid.controls.clear()
         if not results:
             self.library_grid.controls.append(ft.Text("Không tìm thấy truyện phù hợp!", color="grey"))
         else:
-            for m_id, title, path, cover_path in results:
-                real_cover_path, _ = self.smart_path_resolve(cover_path)
+            for m_id, title, path, real_cover_path in results:
                 image_content = ft.Image(
                     src=(real_cover_path if real_cover_path and os.path.exists(real_cover_path) else "assets/icon.png"),
                     fit=ft.ImageFit.COVER, width=float("inf"), height=float("inf"),
