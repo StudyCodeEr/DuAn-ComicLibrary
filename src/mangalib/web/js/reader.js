@@ -11,7 +11,11 @@ const chapterSelect = document.getElementById("chapters");
 const positionLabel = document.getElementById("pos");
 const zoom = document.getElementById("zoom");
 
-document.getElementById("back").append(icon("back"));
+const backLink = document.getElementById("back");
+backLink.append(icon("back"));
+// Quay lai trang gioi thieu cua chinh truyen nay, khong nhay thang ve thu vien:
+// nguoi dung vua tu do di vao.
+if (slug) backLink.href = `manga.html?slug=${encodeURIComponent(slug)}`;
 document.getElementById("prev").append(icon("prev"));
 document.getElementById("next").append(icon("next"));
 document.getElementById("theme").append(icon("theme"));

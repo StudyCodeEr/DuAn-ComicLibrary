@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from mangalib import paths
-from mangalib.api.deps import require_lan_token, resolve_page_file
+from mangalib.api.deps import require_lan_token, require_local, resolve_page_file
 from mangalib.db import (
     author_repo,
     chapter_repo,
@@ -17,6 +17,7 @@ from mangalib.db import (
     progress_repo,
     tag_repo,
 )
+from mangalib.db.models import Author
 
 router = APIRouter(dependencies=[Depends(require_lan_token)])
 
@@ -138,6 +139,91 @@ def manga_detail(slug: str) -> dict:
         ],
         "progress": progress_data,
     }
+
+
+class MangaEdit(BaseModel):
+    """Sửa tay khi máy nhận diện sai. Trường nào bỏ trống thì giữ nguyên."""
+
+    title: str | None = None
+    authors: list[str] | None = None
+    tags: list[str] | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+class ChapterOrder(BaseModel):
+    ids: list[int]
+
+    model_config = {"extra": "forbid"}
+
+
+def _manga_id_or_404(conn, slug: str) -> int:
+    manga = manga_repo.get_by_slug(conn, slug)
+    if manga is None:
+        raise HTTPException(404, "Không tìm thấy truyện")
+    return manga.id
+
+
+# Moi lenh SUA/XOA chi cho localhost: dien thoai trong LAN doc duoc nhung khong
+# duoc xoa thu vien. Token LAN chi la bearer tren HTTP tran, khong du de tin.
+@router.patch("/manga/{slug}", dependencies=[Depends(require_local)])
+def edit_manga(slug: str, payload: MangaEdit) -> dict:
+    with engine.write() as conn:
+        manga_id = _manga_id_or_404(conn, slug)
+        if payload.title is not None:
+            title = payload.title.strip()
+            if not title:
+                raise HTTPException(400, "Tên truyện không được để trống")
+            manga_repo.set_title(conn, slug, title)
+        # Sua tay la quyet dinh cuoi cung: xoa luon nhom 'scraped', neu khong thi
+        # tac gia/the loai site gan sai van con nguyen ben canh ban sua.
+        if payload.authors is not None:
+            author_repo.set_for_manga(conn, manga_id, [], origin="scraped")
+            author_repo.set_for_manga(
+                conn,
+                manga_id,
+                [Author(name=n) for n in payload.authors if n.strip()],
+                origin="manual",
+            )
+        if payload.tags is not None:
+            tag_repo.set_for_manga(conn, manga_id, [], origin="scraped")
+            tag_repo.set_for_manga(
+                conn, manga_id, [x for x in payload.tags if x.strip()], origin="manual"
+            )
+    with engine.read_only() as conn:
+        return _manga_json(manga_repo.get_by_slug(conn, slug), detail=True)
+
+
+@router.delete("/manga/{slug}", dependencies=[Depends(require_local)])
+def delete_manga(slug: str) -> dict:
+    """Xoá mềm: truyện biến khỏi thư viện, file ảnh vẫn nằm nguyên trên đĩa."""
+    with engine.write() as conn:
+        if not manga_repo.delete(conn, slug):
+            raise HTTPException(404, "Không tìm thấy truyện")
+    return {"slug": slug, "deleted": True}
+
+
+@router.delete("/manga/{slug}/chapters/{chapter_id}", dependencies=[Depends(require_local)])
+def delete_chapter(slug: str, chapter_id: int) -> dict:
+    with engine.write() as conn:
+        manga_id = _manga_id_or_404(conn, slug)
+        chapter = chapter_repo.get(conn, chapter_id)
+        if chapter is None or chapter.manga_id != manga_id:
+            raise HTTPException(404, "Không tìm thấy chương trong truyện này")
+        chapter_repo.delete(conn, chapter_id)
+    return {"chapter_id": chapter_id, "deleted": True}
+
+
+@router.put("/manga/{slug}/chapter-order", dependencies=[Depends(require_local)])
+def set_chapter_order(slug: str, payload: ChapterOrder) -> dict:
+    """Ghi thứ tự chương. Kéo thả, nút lên/xuống và nút A-Z đều gọi vào đây."""
+    with engine.write() as conn:
+        manga_id = _manga_id_or_404(conn, slug)
+        hop_le = {c.id for c in chapter_repo.list_for_manga(conn, manga_id)}
+        if set(payload.ids) != hop_le:
+            raise HTTPException(400, "Danh sách phải gồm đúng các chương của truyện này")
+        chapter_repo.set_order(conn, manga_id, payload.ids)
+    return {"ordered": len(payload.ids)}
 
 
 @router.get("/manga/{slug}/chapters/{chapter_id}/pages")

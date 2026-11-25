@@ -54,6 +54,22 @@ export const api = {
   createJob: (url) => request("/jobs", { method: "POST", body: JSON.stringify({ url }) }),
   cancelJob: (id) => request(`/jobs/${id}`, { method: "DELETE" }),
   settings: () => request("/settings"),
+  editManga: (slug, body) =>
+    request(`/manga/${encodeURIComponent(slug)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteManga: (slug) =>
+    request(`/manga/${encodeURIComponent(slug)}`, { method: "DELETE" }),
+  deleteChapter: (slug, chapterId) =>
+    request(`/manga/${encodeURIComponent(slug)}/chapters/${chapterId}`, {
+      method: "DELETE",
+    }),
+  setChapterOrder: (slug, ids) =>
+    request(`/manga/${encodeURIComponent(slug)}/chapter-order`, {
+      method: "PUT",
+      body: JSON.stringify({ ids }),
+    }),
   pickFolder: () => request("/settings/pick-folder", { method: "POST" }),
   saveSettings: (body) =>
     request("/settings", { method: "PATCH", body: JSON.stringify(body) }),
@@ -80,6 +96,8 @@ const PATHS = {
   close: "M6 6 L18 18 M18 6 L6 18",
   back: "M11 5 L4 12 L11 19 M4 12 H20",
   download: "M12 4 V15 M7 11 L12 16 L17 11 M5 20 H19",
+  up: "M5 15 L12 8 L19 15",
+  down: "M5 9 L12 16 L19 9",
 };
 
 export function icon(name, { size = 18 } = {}) {

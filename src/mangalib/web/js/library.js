@@ -19,6 +19,9 @@ const state = {
   page: 1,
   perPage: 40,
 };
+// ?tag= để từ trang chi tiết bấm một thể loại là về thư viện đã lọc sẵn.
+if (params.get("tag")) state.tagStates.set(params.get("tag"), 1);
+
 search.value = state.q;
 
 const FINISHED = 0.999;
@@ -76,7 +79,7 @@ function card(item) {
 
   return el(
     "a",
-    { class: "card", href: `reader.html?slug=${encodeURIComponent(item.slug)}`, title: item.title },
+    { class: "card", href: `manga.html?slug=${encodeURIComponent(item.slug)}`, title: item.title },
     [
       el("div", { class: "cover" }, inner),
       el("div", { class: "meta" }, [

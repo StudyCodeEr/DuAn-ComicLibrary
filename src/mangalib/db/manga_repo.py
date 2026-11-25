@@ -243,6 +243,17 @@ def search(
     return [_hydrate(conn, row) for row in rows], total
 
 
+def set_title(conn: sqlite3.Connection, slug: str, title: str) -> bool:
+    """Sửa tên truyện. `title_sort` phải đổi theo, nếu không tìm kiếm sẽ lệch."""
+    return bool(
+        conn.execute(
+            "UPDATE manga SET title = ?, title_sort = ?, updated_at = datetime('now') "
+            "WHERE slug = ?",
+            (title, naming.sort_key(title), slug),
+        ).rowcount
+    )
+
+
 def set_cover(conn: sqlite3.Connection, slug: str, cover_file: str) -> bool:
     """Chỉ đổi ảnh bìa. Dùng upsert ở đây sẽ xoá mất source_key/source_url."""
     cursor = conn.execute(

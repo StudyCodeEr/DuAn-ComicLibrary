@@ -532,3 +532,130 @@ html[data-theme="light"] body {
     ),
     url("/assets/bg-light.jpg");
 }
+
+/* ---------- trang chi tiết truyện ---------- */
+/* Bố cục quen thuộc của web truyện tranh: bìa trái, thông tin phải, danh sách
+   chương bên dưới. Nhưng vẫn là hệ của app: hairline phân vùng, không bóng đổ,
+   không thêm màu nào ngoài token sẵn có. */
+
+.back-link {
+  display: inline-block;
+  margin-bottom: var(--gap);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.back-link:hover { color: var(--text); }
+
+.hero {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--gap);
+  padding-bottom: var(--gap);
+  margin-bottom: var(--gap);
+  border-bottom: 1px solid var(--line);
+}
+.hero-cover {
+  width: 200px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.hero-info { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hero-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.hero-facts { max-width: 46ch; }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.tag-chip:hover { border-color: var(--accent); color: var(--text); }
+
+.hero-actions { align-items: center; }
+/* Khoi neo cua menu la chinh nut "...", khong phai ca hang nut. */
+.more-wrap { position: relative; display: inline-flex; }
+a.btn.disabled { opacity: 0.45; pointer-events: none; }
+#msg { padding: 0; }
+#msg[data-bad="1"] { color: var(--bad); }
+
+/* Menu "…" — một tấm hairline nổi ngay dưới nút, không phải modal. */
+.more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.more-menu button {
+  border: 0;
+  border-radius: 0;
+  justify-content: flex-start;
+  padding: 10px 14px;
+}
+.more-menu button + button { border-top: 1px solid var(--line-soft); }
+.more-menu button:hover { background: var(--surface-hi); }
+
+.chapters-head { align-items: baseline; justify-content: space-between; }
+.chapters-head h2 { margin: 0; }
+.sorter { align-items: center; flex-wrap: wrap; }
+
+.chapters { list-style: none; margin: 0; padding: 0; }
+.ch + .ch { border-top: 1px solid var(--line-soft); }
+.ch[draggable="true"] { cursor: grab; }
+.ch-link {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 6px;
+  color: inherit;
+  min-height: 44px; /* bấm trúng được bằng ngón tay */
+}
+a.ch-link:hover { background: var(--surface-hi); }
+.ch-no {
+  flex: none;
+  min-width: 3.5ch;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
+}
+.ch-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-pages {
+  flex: none;
+  min-width: 8ch;
+  text-align: right;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.ch-tools { flex: none; display: flex; gap: 4px; }
+
+.pill {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  border: 1px solid currentColor;
+}
+.pill[data-s="warn"] { color: var(--warn); }
+
+@media (max-width: 640px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-cover { width: 140px; }
+  .ch-pages { display: none; }
+}

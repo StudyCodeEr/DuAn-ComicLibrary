@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Truyện · Comic Library</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Comic<span>Library</span></div>
+  <nav class="nav">
+    <a href="downloads.html">Tải về</a>
+    <a href="index.html">Thư viện</a>
+    <a href="authors.html">Tác giả</a>
+    <a href="settings.html">Cài đặt</a>
+  </nav>
+</header>
+
+<main>
+  <a class="back-link" href="index.html">Về thư viện</a>
+
+  <!-- Ảnh bìa do JS chèn vào, chỉ khi truyện thật sự có bìa: đặt sẵn một <img>
+       rỗng ở đây thì lúc JS hỏng nó hiện ra thành ô ảnh vỡ. -->
+  <section class="hero" id="hero" hidden>
+    <div class="hero-info">
+      <h1 class="hero-title" id="title"></h1>
+
+      <dl class="kv hero-facts" id="facts"></dl>
+      <div class="tags hero-tags" id="tags" hidden></div>
+
+      <div class="row hero-actions">
+        <a class="btn primary" id="read" href="#">Bắt đầu đọc</a>
+        <span class="more-wrap">
+          <button id="menu" class="ghost iconbtn" title="Thêm" aria-label="Thêm tuỳ chọn"
+                  aria-haspopup="true" aria-expanded="false">…</button>
+        </span>
+      </div>
+      <p class="count" id="msg" hidden></p>
+    </div>
+  </section>
+
+  <!-- Bảng sửa thông tin, chỉ hiện khi chọn trong menu "…" -->
+  <form class="panel" id="editor" hidden>
+    <h2>Sửa thông tin</h2>
+    <label class="pos" for="f-title">Tên truyện</label>
+    <div class="row"><input id="f-title" class="grow" type="text" autocomplete="off"></div>
+    <label class="pos" for="f-authors">Tác giả — cách nhau bằng dấu phẩy</label>
+    <div class="row"><input id="f-authors" class="grow" type="text" autocomplete="off"></div>
+    <label class="pos" for="f-tags">Thể loại — cách nhau bằng dấu phẩy</label>
+    <div class="row"><input id="f-tags" class="grow" type="text" autocomplete="off"></div>
+    <div class="row">
+      <button id="save" class="primary" type="submit">Lưu</button>
+      <button id="cancel" class="ghost" type="button">Huỷ</button>
+    </div>
+  </form>
+
+  <section class="panel" id="chapters-panel" hidden>
+    <div class="row chapters-head">
+      <h2>Danh sách chương</h2>
+      <span class="count" id="chapter-count"></span>
+    </div>
+    <div class="row sorter" id="sorter" hidden>
+      <button id="sort-az" class="ghost" type="button">Sắp A → Z</button>
+      <button id="sort-za" class="ghost" type="button">Sắp Z → A</button>
+      <span class="count">Kéo để đổi chỗ, hoặc dùng mũi tên.</span>
+    </div>
+    <ol class="chapters" id="chapters"></ol>
+  </section>
+</main>
+
+<script type="module" src="/static/js/manga.js"></script>
+</body>
+</html>

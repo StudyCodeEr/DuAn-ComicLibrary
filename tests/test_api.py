@@ -104,3 +104,71 @@ def test_bo_trong_duong_dan_thi_quay_ve_mac_dinh(client, tmp_path):
 
 def test_dinh_dang_anh_khong_hop_le_bi_tu_choi(client):
     assert client.patch("/api/v1/settings", json={"image_format": "bmp"}).status_code == 422
+
+
+@pytest.fixture
+def truyen(client):
+    """Một truyện có 2 chương, để thử sửa/xoá/sắp xếp."""
+    from mangalib.db import chapter_repo, manga_repo
+    from mangalib.db.models import Chapter, Manga
+
+    with engine.write() as conn:
+        manga_id = manga_repo.upsert(conn, Manga(slug="abc", title="Tên Sai"))
+        ids = [
+            chapter_repo.upsert(
+                conn, manga_id, Chapter(title=f"Chương {n}", dir_name=f"{n:04d}", number=float(n))
+            )
+            for n in (1, 2)
+        ]
+    return {"slug": "abc", "chapter_ids": ids}
+
+
+def test_sua_tay_de_len_thong_tin_may_nhan_dien_sai(client, truyen):
+    response = client.patch(
+        f"/api/v1/manga/{truyen['slug']}",
+        json={"title": "Tên Đúng", "tags": ["Action"], "authors": ["Ai Đó"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Tên Đúng"
+    assert body["tags"] == ["Action"]
+    assert [a["name"] for a in body["authors"]] == ["Ai Đó"]
+
+
+def test_khong_cho_doi_ten_thanh_rong(client, truyen):
+    assert client.patch(f"/api/v1/manga/{truyen['slug']}", json={"title": "  "}).status_code == 400
+
+
+def test_xoa_truyen_la_xoa_mem(client, truyen):
+    assert client.delete(f"/api/v1/manga/{truyen['slug']}").status_code == 200
+    assert client.get(f"/api/v1/manga/{truyen['slug']}").status_code == 404
+    assert client.get("/api/v1/library?page=1&per_page=10").json()["total"] == 0
+
+
+def test_xoa_chuong_khong_thuoc_truyen_bi_tu_choi(client, truyen):
+    response = client.delete(f"/api/v1/manga/{truyen['slug']}/chapters/9999")
+
+    assert response.status_code == 404
+
+
+def test_sap_lai_thu_tu_chuong(client, truyen):
+    dao = list(reversed(truyen["chapter_ids"]))
+
+    response = client.put(
+        f"/api/v1/manga/{truyen['slug']}/chapter-order", json={"ids": dao}
+    )
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in client.get(f"/api/v1/manga/{truyen['slug']}").json()["chapters"]]
+    assert ids == dao
+
+
+def test_thu_tu_phai_gom_dung_cac_chuong_cua_truyen(client, truyen):
+    """Gửi thiếu hoặc thừa id là hỏng dữ liệu, phải chặn chứ không ghi một nửa."""
+    response = client.put(
+        f"/api/v1/manga/{truyen['slug']}/chapter-order",
+        json={"ids": [truyen["chapter_ids"][0]]},
+    )
+
+    assert response.status_code == 400
