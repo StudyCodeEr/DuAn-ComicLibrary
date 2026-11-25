@@ -25,9 +25,8 @@ from mangalib.db import (
 from mangalib.db.models import Author, Chapter, Manga, Page
 from mangalib.download import fetcher
 from mangalib.download.images import make_thumbnail, sniff_ext
-from mangalib.errors import SourceNotFound
 from mangalib.library import metadata
-from mangalib.meta import GenericSource, HttpClient, MangaMeta, rule_for_url
+from mangalib.meta import GenericSource, HttpClient, MangaMeta, discover, rule_for_url
 
 __all__ = ["DownloadReport", "download_manga"]
 
@@ -60,9 +59,9 @@ def _emit(on_progress: Progress | None, phase: str, message: str) -> None:
 
 
 def fetch_metadata(url: str) -> tuple[MangaMeta, object]:
-    rule = rule_for_url(url)
-    if rule is None:
-        raise SourceNotFound(f"không có rule nào khớp domain của {url}")
+    # Khong con tu choi link la. File .yml gio chi de TANG TOC va SUA SAI cho
+    # nhung site da biet; chua co file nao thi suy ra tu chinh trang web.
+    rule = rule_for_url(url) or discover.default_rule(url)
     with HttpClient(min_delay_ms=rule.request.min_delay_ms) as http:
         return GenericSource(rule).fetch_manga(http, url), rule
 

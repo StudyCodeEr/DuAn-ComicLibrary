@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from mangalib import naming
 from mangalib.errors import PageFetchError
-from mangalib.meta import parse
+from mangalib.meta import discover, parse
 from mangalib.meta.client import HttpClient, Page
 from mangalib.meta.models import ChapterRef, MangaMeta
 from mangalib.meta.rules import FieldRule, SiteRule
@@ -97,7 +97,9 @@ class GenericSource:
 
     def _cover(self, tree, base: str) -> str | None:
         found = parse.extract(tree, self.rule.cover.sources, base, first_only=True)
-        return found[0] if found else None
+        # `og:image` duoc phep la duong dan tuong doi. Handler `meta` khong ghep
+        # base vi no con dung cho og:title la van ban thuan, nen ghep o day.
+        return urljoin(base, found[0]) if found else None
 
     # ----- chương ----------------------------------------------------------
     def _chapter_refs(self, tree, base: str) -> list[ChapterRef]:
@@ -127,18 +129,58 @@ class GenericSource:
         found = parse.extract(tree, self.rule.read_entry.sources, base, first_only=True)
         return found[0] if found else None
 
+    def _auto_chapters(self, client: HttpClient, detail: Page, tree) -> list[ChapterRef]:
+        """Trang lạ: tìm NÚT ĐỌC trước, rồi mới tìm chương — thứ tự này bền hơn.
+
+        Trang chi tiết của site lạ thường chỉ có nút "Đọc truyện"; danh sách chương
+        nằm ở trang đọc. Bám vào nút đọc trước nên không phụ thuộc việc trang chi
+        tiết có liệt kê chương hay không.
+
+        Không bao giờ coi là thất bại: nếu không suy ra được chương nào thì lấy
+        chính trang người dùng dán làm một chương, để trình duyệt duyệt qua một
+        lượt. Dán nhầm trang không phải truyện thì kết quả là 0 ảnh, chứ không
+        phải một thông báo từ chối.
+        """
+        entry = self._read_entry(tree, detail.url)
+        if entry and entry.split("#")[0] != detail.url.split("#")[0]:
+            try:
+                read_page = self.fetch(client, entry, referer=detail.url)
+            except PageFetchError as exc:
+                logger.info("không mở được nút đọc %s: %s", entry, exc)
+            else:
+                read_tree = parse.parse_html(read_page.html)
+                found = self._chapter_refs(read_tree, read_page.url) or discover.discover_chapters(
+                    read_tree, read_page.url
+                )
+                if found:
+                    return found
+
+        found = self._chapter_refs(tree, detail.url) or discover.discover_chapters(
+            tree, detail.url
+        )
+        if found:
+            return found
+
+        logger.info("không suy ra được chương nào từ %s, duyệt chính trang này", detail.url)
+        return [ChapterRef(title=self._title(tree, detail.url) or "Trang đã dán", url=detail.url)]
+
     # ----- điểm vào --------------------------------------------------------
     def fetch_manga(self, client: HttpClient, url: str) -> MangaMeta:
         detail = self.fetch(client, url)
         tree = parse.parse_html(detail.html)
 
-        chapters = self._chapter_refs(tree, detail.url)
-        if not chapters:
-            # Danh sách chương thường nằm ở trang đọc, không ở trang chi tiết.
-            entry = self._read_entry(tree, detail.url)
-            if entry:
-                read_page = self.fetch(client, entry, referer=detail.url)
-                chapters = self._chapter_refs(parse.parse_html(read_page.html), read_page.url)
+        if self.rule.auto_discover:
+            chapters = self._auto_chapters(client, detail, tree)
+        else:
+            chapters = self._chapter_refs(tree, detail.url)
+            if not chapters:
+                # Danh sách chương thường nằm ở trang đọc, không ở trang chi tiết.
+                entry = self._read_entry(tree, detail.url)
+                if entry:
+                    read_page = self.fetch(client, entry, referer=detail.url)
+                    chapters = self._chapter_refs(
+                        parse.parse_html(read_page.html), read_page.url
+                    )
 
         return MangaMeta(
             title=self._title(tree, detail.url),

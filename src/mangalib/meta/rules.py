@@ -87,6 +87,9 @@ class SiteRule(BaseModel):
     filters: FiltersRule = Field(default_factory=FiltersRule)
     request: RequestRule = Field(default_factory=RequestRule)
     source_path: str | None = None
+    auto_discover: bool = False
+    """Rule suy ra tu trang, khong phai file .yml: cho phep do danh sach chuong
+    bang cau truc khi bo chon khai bao san khong ra gi."""
 
     def matches(self, url: str) -> bool:
         host = urlsplit(url).hostname or ""
