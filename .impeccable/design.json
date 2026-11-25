@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-25T00:00:00Z",
+  "title": "Design System: Manga Local Library",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Mực nền (Cold-Warm Ink)",
+        "canonical": "#14161b",
+        "lightValue": "#f4f2ee",
+        "tonalRamp": ["#0b0c0f", "#14161b", "#1c1f26", "#252932", "#30353f", "#4a505c", "#7b8290", "#e9ebef"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Nền nổi",
+        "canonical": "#1c1f26",
+        "lightValue": "#ffffff",
+        "tonalRamp": ["#0d0f13", "#14161b", "#1c1f26", "#252932", "#323744", "#4d5464", "#808795", "#eceef2"]
+      },
+      "surface-hi": {
+        "role": "neutral",
+        "displayName": "Nền nổi cao",
+        "canonical": "#252932",
+        "lightValue": "#eae7e0",
+        "tonalRamp": ["#101218", "#181b22", "#1f232b", "#252932", "#343a46", "#515869", "#858c9a", "#eef0f4"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Kẻ hairline",
+        "canonical": "#30353f",
+        "lightValue": "#d7d2c9",
+        "tonalRamp": ["#14161b", "#1c1f26", "#23272f", "#30353f", "#434a57", "#636b7b", "#98a0ad", "#eceef2"]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Kẻ nhạt",
+        "canonical": "#23272f",
+        "lightValue": "#e6e2da",
+        "tonalRamp": ["#101217", "#171a20", "#1d2027", "#23272f", "#2e333d", "#474e5b", "#79808e", "#e9ebef"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Trắng ngà (Warm Ivory)",
+        "canonical": "#e8e6e1",
+        "lightValue": "#1b1d22",
+        "tonalRamp": ["#1c1b19", "#3a3832", "#58554d", "#777368", "#9b968a", "#bfbab0", "#e8e6e1", "#f7f6f3"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Xám chữ phụ",
+        "canonical": "#8c9099",
+        "lightValue": "#6b6f78",
+        "tonalRamp": ["#1a1c20", "#2c2f35", "#43474f", "#5c6168", "#757a82", "#8c9099", "#b4b8bf", "#e6e8eb"]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Đồng thau (Brass)",
+        "canonical": "#c9a227",
+        "lightValue": "#8a6d12",
+        "tonalRamp": ["#241c05", "#3d2f08", "#5c470d", "#7d6113", "#a3821c", "#c9a227", "#dfc05c", "#f2e6b4"]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Mực nhấn",
+        "canonical": "#1a1505",
+        "lightValue": "#ffffff",
+        "tonalRamp": ["#0d0a02", "#1a1505", "#2c2409", "#43370e", "#5e4d16", "#80692a", "#ab9560", "#e7dfc8"]
+      },
+      "ok": {
+        "role": "tertiary",
+        "displayName": "Xanh hoàn tất",
+        "canonical": "#4e9a6a",
+        "tonalRamp": ["#0c1d14", "#13301f", "#1d4a30", "#2a6a45", "#3a8255", "#4e9a6a", "#7cba93", "#d4ebdd"]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Vàng cần người",
+        "canonical": "#c98a2b",
+        "tonalRamp": ["#241706", "#3d270a", "#5c3b0e", "#7d5214", "#a36d1e", "#c98a2b", "#dfae63", "#f4e0ba"]
+      },
+      "bad": {
+        "role": "tertiary",
+        "displayName": "Đỏ thất bại",
+        "canonical": "#c0564f",
+        "tonalRamp": ["#240d0b", "#3d1512", "#5c201b", "#7d2c26", "#a03d35", "#c0564f", "#d78a85", "#f3dbd9"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Tiêu đề trang (h1.page). 26px, xuống 21px dưới 640px." },
+      "headline": { "displayName": "Headline", "purpose": "Tiêu đề panel. 19px, xuống 17px dưới 640px." },
+      "title": { "displayName": "Title", "purpose": "Tên app ở thanh trên; 'Local Library' ăn màu nhấn." },
+      "body": { "displayName": "Body", "purpose": "Chữ mặc định của body, kèm tabular-nums." },
+      "label": { "displayName": "Label", "purpose": "Tên truyện trong thẻ, nhãn nút, điều hướng, chip, trạng thái job." },
+      "caption": { "displayName": "Caption", "purpose": "Badge số chương/trang, tag thể loại, metadata phụ." },
+      "mono": { "displayName": "Mono", "purpose": "Chỉ dùng cho khung nhật ký tải realtime." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "chrome-retreat", "value": "transform 0.18s ease, opacity 0.18s ease", "purpose": "Thanh trên/dưới của trình đọc lùi đi khi cuộn và hiện lại khi chạm hoặc khi dừng cuộn." },
+      { "name": "chrome-return-delay", "value": "900ms", "purpose": "Thời gian dừng cuộn trước khi chrome của trình đọc quay lại." },
+      { "name": "search-debounce", "value": "250ms", "purpose": "Chờ gõ xong trước khi gọi lại thư viện." },
+      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) { transition: none }", "purpose": "Mọi transition của chrome bị tắt hoàn toàn." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "640px" }
+    ],
+    "notes": [
+      "Không có token bóng đổ: hệ phẳng tuyệt đối, phân vùng bằng hairline 1px. backdrop-filter: none được viết tường minh trên .readerbar.",
+      "assets/bg-dark.jpg và assets/bg-light.jpg được PRODUCT.md ghim là bắt buộc giữ, nhưng bản ship không tham chiếu chúng và chúng KHÔNG thuộc hệ thống này: nền ảnh chụp sẽ phá quy tắc phẳng + hairline.",
+      "Khối OWN-WORLD của direction contract ghi slate #0F172A / cyan #06B6D4 / hairline #334155. Bản ship đã chỉnh tay sang mực xanh lạnh pha ấm #14161b và đồng thau #c9a227 sau vòng review hoàn thiện; bản build là nguồn sự thật."
+    ]
+  },
+  "components": [
+    {
+      "name": "Cover Tile",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Thành phần ký tên của hệ: khung bìa 2:3 mang dải tiến độ ba trạng thái, badge số chương/số trang, và dải meta hai dòng.",
+      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-cover\"><img src=\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='300'%3E%3Crect width='200' height='300' fill='%23252932'/%3E%3C/svg%3E\" alt=\"\"><div class=\"ds-badge\">12 ch · 240 tr</div><div class=\"ds-progress\"><i style=\"width:46%\"></i></div></div><div class=\"ds-meta\"><div class=\"ds-title\">Tên truyện dài có thể xuống hai dòng</div><div class=\"ds-stat\"><b>Đang đọc · Ch. 6</b></div><div class=\"ds-tags\"><span>hành động</span><span>học đường</span></div></div></a>",
+      "css": ".ds-card { display: flex; flex-direction: column; border: 1px solid var(--line, #30353f); border-radius: 8px; background: var(--surface, #1c1f26); color: var(--text, #e8e6e1); overflow: hidden; width: 148px; font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; font-variant-numeric: tabular-nums; text-decoration: none; } .ds-card:hover { border-color: var(--accent, #c9a227); } .ds-card:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-cover { position: relative; aspect-ratio: 2 / 3; background: var(--surface-hi, #252932); } .ds-cover img { width: 100%; height: 100%; object-fit: cover; display: block; } .ds-badge { position: absolute; top: 6px; right: 6px; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--ground, #14161b) 86%, transparent); border: 1px solid var(--line, #30353f); font-size: 11px; line-height: 1.6; } .ds-progress { position: absolute; inset: auto 0 0 0; height: 2px; background: color-mix(in srgb, var(--line, #30353f) 70%, transparent); } .ds-progress i { display: block; height: 100%; background: var(--accent, #c9a227); } .ds-progress[data-done=\"1\"] i { background: var(--ok, #4e9a6a); } .ds-meta { padding: 8px; display: flex; flex-direction: column; gap: 5px; } .ds-title { font-size: 13px; font-weight: 600; line-height: 1.3; height: 2.6em; overflow: hidden; } .ds-stat { font-size: 11px; color: var(--muted, #8c9099); } .ds-stat b { color: var(--accent, #c9a227); font-weight: 600; } .ds-stat b[data-done=\"1\"] { color: var(--ok, #4e9a6a); } .ds-tags { display: flex; gap: 4px; flex-wrap: wrap; height: 20px; overflow: hidden; } .ds-tags span { font-size: 11px; color: var(--muted, #8c9099); border: 1px solid var(--line-soft, #23272f); border-radius: 999px; padding: 1px 6px; }"
+    },
+    {
+      "name": "Resume Tile",
+      "kind": "custom",
+      "refersTo": "resume-tile",
+      "description": "Ô trong dải 'Đọc tiếp': thẻ ngang 280×160 với bìa cắt dọc bên trái và dòng 'Đọc tiếp' màu nhấn đẩy xuống đáy.",
+      "html": "<a class=\"ds-resume\" href=\"#\"><img src=\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='107' height='160'%3E%3Crect width='107' height='160' fill='%23252932'/%3E%3C/svg%3E\" alt=\"\"><div class=\"ds-resume-body\"><div class=\"ds-resume-t\">Tên truyện đang đọc dở</div><div class=\"ds-resume-c\">Đang đọc · Ch. 6</div><div class=\"ds-resume-go\">Đọc tiếp</div></div></a>",
+      "css": ".ds-resume { display: flex; gap: 10px; flex: 0 0 auto; width: 280px; height: 160px; border: 1px solid var(--line, #30353f); border-radius: 8px; background: var(--surface, #1c1f26); color: var(--text, #e8e6e1); overflow: hidden; text-decoration: none; font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; } .ds-resume:hover { border-color: var(--accent, #c9a227); } .ds-resume:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-resume img { width: 107px; height: 100%; object-fit: cover; display: block; } .ds-resume-body { display: flex; flex-direction: column; gap: 4px; padding: 10px 10px 10px 0; min-width: 0; } .ds-resume-t { font-size: 13px; font-weight: 600; line-height: 1.3; max-height: 3.9em; overflow: hidden; } .ds-resume-c { font-size: 11px; color: var(--muted, #8c9099); } .ds-resume-go { margin-top: auto; color: var(--accent, #c9a227); font-size: 11px; font-weight: 600; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Hành động chính duy nhất của một bề mặt: nền đồng thau, chữ mực nhấn.",
+      "html": "<button class=\"ds-btn-primary\">Thêm vào hàng đợi</button>",
+      "css": ".ds-btn-primary { display: inline-flex; gap: 6px; align-items: center; padding: 8px 13px; background: var(--accent, #c9a227); color: var(--accent-ink, #1a1505); border: 1px solid var(--accent, #c9a227); border-radius: 8px; font: 600 13px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; cursor: pointer; } .ds-btn-primary:hover { background: color-mix(in srgb, var(--accent, #c9a227) 88%, #fff); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-btn-primary:active { background: color-mix(in srgb, var(--accent, #c9a227) 88%, #000); }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Nút mặc định: nền nổi, viền hairline, hover nâng lên bậc nền cao.",
+      "html": "<button class=\"ds-btn\">Đổi sáng / tối</button>",
+      "css": ".ds-btn { display: inline-flex; gap: 6px; align-items: center; padding: 8px 13px; background: var(--surface, #1c1f26); color: var(--text, #e8e6e1); border: 1px solid var(--line, #30353f); border-radius: 8px; font: 400 13px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; cursor: pointer; } .ds-btn:hover { background: var(--surface-hi, #252932); } .ds-btn:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Icon Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Nút chỉ có icon trong thanh điều khiển của trình đọc: nền trong suốt, giữ hairline, icon SVG inline một nét.",
+      "html": "<button class=\"ds-iconbtn\" aria-label=\"Chương sau\" title=\"Chương sau (→)\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M10 5 L17 12 L10 19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
+      "css": ".ds-iconbtn { display: inline-flex; align-items: center; padding: 7px; background: transparent; color: var(--text, #e8e6e1); border: 1px solid var(--line, #30353f); border-radius: 8px; cursor: pointer; } .ds-iconbtn:hover { background: var(--surface-hi, #252932); } .ds-iconbtn:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-icon { width: 18px; height: 18px; flex: 0 0 auto; display: block; }"
+    },
+    {
+      "name": "Tag Chip (three-state)",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Bộ lọc thể loại ba trạng thái thật: bỏ qua · bắt buộc có (xanh) · loại trừ (đỏ, gạch ngang).",
+      "html": "<button class=\"ds-chip\" data-state=\"0\">hành động<span class=\"ds-chip-n\">42</span></button> <button class=\"ds-chip\" data-state=\"1\">học đường<span class=\"ds-chip-n\">18</span></button> <button class=\"ds-chip\" data-state=\"2\">kinh dị<span class=\"ds-chip-n\">7</span></button>",
+      "css": ".ds-chip { padding: 4px 10px; border: 1px solid var(--line, #30353f); border-radius: 999px; background: var(--surface, #1c1f26); color: var(--muted, #8c9099); font: 400 13px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; cursor: pointer; } .ds-chip:hover { color: var(--text, #e8e6e1); } .ds-chip:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-chip[data-state=\"1\"] { border-color: var(--ok, #4e9a6a); color: var(--ok, #4e9a6a); } .ds-chip[data-state=\"2\"] { border-color: var(--bad, #c0564f); color: var(--bad, #c0564f); text-decoration: line-through; } .ds-chip-n { color: var(--muted, #8c9099); font-size: 11px; margin-left: 4px; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ô tìm kiếm trong thanh trên; dưới 640px nó xuống hàng riêng và chiếm cả chiều rộng.",
+      "html": "<input class=\"ds-input-search\" type=\"text\" placeholder=\"Tìm tên truyện hoặc tên tác giả…\" autocomplete=\"off\">",
+      "css": ".ds-input-search { padding: 8px 10px; background: var(--surface, #1c1f26); color: var(--text, #e8e6e1); border: 1px solid var(--line, #30353f); border-radius: 8px; font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; caret-color: var(--accent, #c9a227); min-width: 0; flex: 1 1 240px; max-width: 420px; } .ds-input-search::placeholder { color: var(--muted, #8c9099); } .ds-input-search:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; }"
+    },
+    {
+      "name": "Topbar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Thanh trên sticky: tên app, nhóm điều hướng đẩy phải, trạng thái trang hiện tại gán qua aria-current.",
+      "html": "<header class=\"ds-topbar\"><div class=\"ds-brand\">Manga <span>Local Library</span></div><nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\">Thư viện</a><a href=\"#\">Tác giả</a><a href=\"#\">Tải về</a><a href=\"#\">Cài đặt</a></nav></header>",
+      "css": ".ds-topbar { display: flex; gap: 16px; align-items: center; padding: 10px 16px; background: var(--ground, #14161b); border-bottom: 1px solid var(--line, #30353f); font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; color: var(--text, #e8e6e1); } .ds-brand { font-size: 15px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap; } .ds-brand span { color: var(--accent, #c9a227); } .ds-nav { display: flex; gap: 2px; margin-left: auto; } .ds-nav a { padding: 6px 11px; border-radius: 8px; color: var(--muted, #8c9099); border: 1px solid transparent; font-size: 13px; white-space: nowrap; text-decoration: none; } .ds-nav a:hover { background: var(--surface, #1c1f26); color: var(--text, #e8e6e1); } .ds-nav a:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-nav a[aria-current=\"page\"] { color: var(--text, #e8e6e1); border-color: var(--line, #30353f); background: var(--surface, #1c1f26); }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Khối nội dung của các trang cài đặt / tải về / tác giả: nền nổi, viền hairline, padding bằng một nhịp.",
+      "html": "<div class=\"ds-panel\"><h2>Ghép đôi điện thoại</h2><dl class=\"ds-kv\"><dt>Địa chỉ LAN</dt><dd>http://192.168.1.20:8000</dd><dt>Thư mục</dt><dd>data/library</dd></dl></div>",
+      "css": ".ds-panel { border: 1px solid var(--line, #30353f); border-radius: 8px; background: var(--surface, #1c1f26); color: var(--text, #e8e6e1); padding: 16px; margin-bottom: 16px; font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; font-variant-numeric: tabular-nums; } .ds-panel h2 { margin: 0 0 10px; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; } .ds-kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 13px; } .ds-kv dt { color: var(--muted, #8c9099); } .ds-kv dd { margin: 0; word-break: break-all; }"
+    },
+    {
+      "name": "Job Row",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Một việc trong hàng đợi tải, với trạng thái thật ăn màu: xong (xanh) · đang chạy/chờ (nhấn) · cần đăng nhập (vàng) · thất bại (đỏ).",
+      "html": "<div class=\"ds-job\"><div class=\"ds-job-row\"><span class=\"ds-job-state\" data-s=\"running\">đang chạy</span><span class=\"ds-job-spacer\"></span><span class=\"ds-job-pos\">84/240 trang</span><button class=\"ds-job-cancel\">Huỷ</button></div><div class=\"ds-job-url\">https://example.com/truyen/chuong-6</div></div>",
+      "css": ".ds-job { border: 1px solid var(--line, #30353f); border-radius: 8px; padding: 10px; color: var(--text, #e8e6e1); font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; font-variant-numeric: tabular-nums; } .ds-job-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .ds-job-spacer { flex: 1; } .ds-job-state { font-size: 13px; font-weight: 600; } .ds-job-state[data-s=\"done\"] { color: var(--ok, #4e9a6a); } .ds-job-state[data-s=\"failed\"] { color: var(--bad, #c0564f); } .ds-job-state[data-s=\"running\"], .ds-job-state[data-s=\"queued\"] { color: var(--accent, #c9a227); } .ds-job-state[data-s=\"needs_login\"] { color: var(--warn, #c98a2b); } .ds-job-pos { color: var(--muted, #8c9099); font-size: 13px; white-space: nowrap; } .ds-job-url { font-size: 13px; color: var(--muted, #8c9099); word-break: break-all; } .ds-job-cancel { padding: 8px 13px; background: transparent; color: var(--text, #e8e6e1); border: 1px solid var(--line, #30353f); border-radius: 8px; font: 400 13px/1.5 inherit; cursor: pointer; } .ds-job-cancel:hover { background: var(--surface-hi, #252932); }"
+    },
+    {
+      "name": "Reader Bar",
+      "kind": "nav",
+      "refersTo": "button-icon",
+      "description": "Thanh điều khiển cố định ở đáy trình đọc: nền đặc, hairline trên, backdrop-filter: none viết tường minh; lùi đi khi cuộn.",
+      "html": "<div class=\"ds-readerbar\"><button class=\"ds-rb-btn\" aria-label=\"Chương trước\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M14 5 L7 12 L14 19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button><select class=\"ds-rb-select\" aria-label=\"Chọn chương\"><option>Ch. 6 — Đêm trước kỳ thi</option></select><button class=\"ds-rb-btn\" aria-label=\"Chương sau\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M10 5 L17 12 L10 19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button><span class=\"ds-rb-spacer\"></span><span class=\"ds-rb-pos\">12 / 28</span></div>",
+      "css": ".ds-readerbar { display: flex; gap: 8px; align-items: center; padding: 9px 16px; background: var(--ground, #14161b); border-top: 1px solid var(--line, #30353f); backdrop-filter: none; color: var(--text, #e8e6e1); font: 400 15px/1.5 \"Segoe UI\", system-ui, -apple-system, \"Noto Sans\", Arial, sans-serif; font-variant-numeric: tabular-nums; transition: transform 0.18s ease, opacity 0.18s ease; } .ds-readerbar[data-chrome=\"hidden\"] { transform: translateY(100%); opacity: 0; } .ds-rb-btn { display: inline-flex; padding: 7px; background: transparent; color: inherit; border: 1px solid var(--line, #30353f); border-radius: 8px; cursor: pointer; } .ds-rb-btn:hover { background: var(--surface-hi, #252932); } .ds-rb-btn:focus-visible { outline: 2px solid var(--accent, #c9a227); outline-offset: 2px; } .ds-rb-select { padding: 8px 10px; max-width: 38vw; background: var(--surface, #1c1f26); color: inherit; border: 1px solid var(--line, #30353f); border-radius: 8px; font: inherit; font-size: 13px; } .ds-rb-spacer { flex: 1; } .ds-rb-pos { color: var(--muted, #8c9099); font-size: 13px; white-space: nowrap; } @media (prefers-reduced-motion: reduce) { .ds-readerbar { transition: none; } }"
+    },
+    {
+      "name": "Log Console",
+      "kind": "custom",
+      "refersTo": "log-console",
+      "description": "Nhật ký tải realtime qua SSE — nơi duy nhất trong hệ dùng chữ mono; nhãn phase ăn màu nhấn.",
+      "html": "<div class=\"ds-log\"><div><span class=\"ds-log-p\">[queued] </span>Đã nhận link</div><div><span class=\"ds-log-p\">[resolve] </span>Phân giải 240 ảnh</div><div><span class=\"ds-log-p\">[done] </span>Lưu 240/240 trang</div></div>",
+      "css": ".ds-log { height: 240px; overflow: auto; background: var(--ground, #14161b); color: var(--text, #e8e6e1); border: 1px solid var(--line, #30353f); border-radius: 8px; padding: 10px; font-family: ui-monospace, \"Cascadia Mono\", Consolas, monospace; font-size: 13px; line-height: 1.6; } .ds-log div { white-space: pre-wrap; } .ds-log-p { color: var(--accent, #c9a227); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Kệ sách trong phòng tối",
+    "overview": "Hệ này là chuẩn của hạng mục, chơi thẳng. Thước đo thi công do người dùng chọn là Mihon/Tachiyomi và Komga/Kavita: khác biệt phải đến từ độ tinh của thi công, không phải độ lạ của ý tưởng. Nền là mực xanh lạnh pha ấm (#14161b), chữ là trắng ngà chứ không phải trắng xám, và chỉ có một màu nhấn — đồng thau #c9a227 — đủ sáng để đọc ở một dải cao 2px trên bìa truyện. Bảng màu này được chỉnh tay sau vòng review hoàn thiện, không lấy nguyên ramp của framework nào.\n\nVật liệu là phẳng tuyệt đối. Không bóng đổ, không gradient, không glass; mọi phân vùng làm bằng đường kẻ 1px. Độ sâu đến từ ba bậc nền (ground → surface → surface-hi) chứ không từ ánh sáng giả. backdrop-filter: none được viết ra tường minh trên .readerbar để lớp chrome của trình đọc không bao giờ trượt về hiệu ứng kính.\n\nMật độ cao là chủ ý: công việc của bề mặt chính là duyệt bằng mắt một thư viện hàng nghìn mục, nên bìa xếp dày (minmax(148px, 1fr), xuống 118px trên điện thoại) và mỗi ô tự mang đủ thông tin. Chữ dùng system stack dẫn đầu bằng Segoe UI với Noto Sans đứng sau để đủ dấu tiếng Việt — hệ quả trực tiếp của ràng buộc 100% offline trong PRODUCT.md: không font, script hay ảnh nào được tải từ Internet, nên không có thư viện nào được vendor vào.\n\nPRODUCT.md ghim assets/bg-dark.jpg và assets/bg-light.jpg là tài sản bắt buộc giữ, và bản ship không tham chiếu cả hai. Lý do được ghi lại ở đây để chỗ trống này truy được, không giống như một thứ bị bỏ quên: thế giới đã chốt là phẳng và chia vùng bằng hairline, nên một nền trang bằng ảnh chụp sẽ chống lại chính quy tắc vật liệu của nó. Hai file vẫn nằm trong repo theo yêu cầu của người dùng, nhưng chúng không thuộc hệ thống hình ảnh này và không được đưa vào bề mặt mới.",
+    "keyCharacteristics": [
+      "Phẳng tuyệt đối: không bóng đổ, không gradient, không glass — chỉ hairline 1px.",
+      "Ba bậc nền thay cho độ cao: #14161b → #1c1f26 → #252932.",
+      "Một màu nhấn duy nhất, đồng thau #c9a227, dùng rất tiết kiệm.",
+      "Mật độ cao: bìa 2:3 xếp dày, mỗi ô tự đủ thông tin.",
+      "System font stack, zero tài sản tải từ mạng.",
+      "Số đếm luôn dùng chữ số tabular (font-variant-numeric: tabular-nums trên body)."
+    ],
+    "rules": [
+      { "name": "The One Brass Rule", "body": "Chỉ một màu nhấn trong cả hệ, và nó phải kiếm được chỗ của mình: tiến độ đọc, hành động chính, focus. Nếu một bề mặt mới cần \"một màu nữa cho đẹp\", câu trả lời là hairline hoặc muted.", "section": "colors" },
+      { "name": "The Real-State Rule", "body": "ok / warn / bad chỉ được gán từ trạng thái thật của dữ liệu (ratio đọc, state của job). Không bao giờ tô màu trạng thái cho thứ chưa biết là đúng — đây là Product Principle 3 nói bằng màu.", "section": "colors" },
+      { "name": "The Five-Step Rule", "body": "Năm bậc chữ, hết. Một cỡ mới phải là một biến mới trong :root, không phải một font-size viết rời trong thành phần.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Mọi số đếm — chương, trang, tiến độ, job — dùng chữ số tabular, vì chúng nằm cạnh nhau trong lưới và phải thẳng cột khi thay đổi.", "section": "typography" },
+      { "name": "The One-Breakpoint Rule", "body": "Một ngưỡng 640px. Hành vi đáp ứng khác phải đến từ auto-fill / flex-wrap / min(), không từ một media query mới.", "section": "layout" },
+      { "name": "The Hairline Rule", "body": "Hai vùng tách nhau bằng một đường 1px line, không bao giờ bằng bóng đổ hay nền mờ. Nếu một bố cục cần bóng để đọc được, bố cục đó sai, không phải vật liệu.", "section": "elevation" },
+      { "name": "The No-Glass Rule", "body": "backdrop-filter bị cấm trên mọi bề mặt. Lớp nổi dùng nền đặc ground cộng một hairline.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do phân vùng bằng 1px solid var(--line); dùng line-soft khi đường kẻ nằm bên trong một thẻ đã có viền.",
+      "Do lấy mọi màu, cỡ chữ, nhịp và bán kính từ biến trong :root của src/mangalib/web/app.css; màu mới phải được thêm vào cả :root và [data-theme=\"light\"].",
+      "Do dùng đúng hai bán kính: 8px cho khối, 999px cho viên.",
+      "Do dựng icon bằng icon() — SVG inline, một độ dày nét 2, stroke: currentColor.",
+      "Do cho mọi thành phần tương tác cùng một vòng focus: outline: 2px solid var(--accent), outline-offset: 2px.",
+      "Do tôn trọng prefers-reduced-motion: reduce cho mọi transition mới, như chrome của trình đọc đã làm.",
+      "Do để tiến độ đọc có ba trạng thái phân biệt được (không dải · dải nhấn · dải xanh đầy), không phải một dải bật/tắt.",
+      "Do viết mọi nhãn, thông báo và lỗi bằng tiếng Việt, và cho mọi nút chỉ có icon một aria-label tiếng Việt.",
+      "Do giữ mọi tài sản cục bộ: không font, script hay ảnh nào tải từ Internet."
+    ],
+    "donts": [
+      "Don't dùng box-shadow, gradient hay backdrop-filter ở bất kỳ đâu — kể cả cho lớp nổi; dùng nền đặc ground cộng hairline.",
+      "Don't thêm màu nhấn thứ hai. accent là duy nhất; ok / warn / bad chỉ dành cho trạng thái thật của dữ liệu.",
+      "Don't tô màu trạng thái cho thứ chưa xác nhận là đúng (Product Principle 3: không bao giờ báo thành công khi chưa thành công).",
+      "Don't thêm bậc chữ thứ sáu hay viết font-size rời trong thành phần — năm biến --fs-* là toàn bộ bậc chữ.",
+      "Don't thêm media query mới; dùng auto-fill, flex-wrap và min(), và nếu buộc phải có ngưỡng thì vẫn là 640px.",
+      "Don't dùng ký tự Unicode (←, →, ✕, ◐) làm icon trong giao diện; chúng chỉ được phép trong chữ gợi ý bàn phím như title=\"Chương trước (←)\".",
+      "Don't đặt ảnh chụp làm nền trang hay nền thẻ. assets/bg-dark.jpg và assets/bg-light.jpg được giữ trong repo theo yêu cầu của người dùng nhưng không thuộc hệ thống này: một nền ảnh sẽ phá quy tắc phẳng + hairline.",
+      "Don't vendor thư viện CSS/JS hay tải font từ CDN; ràng buộc 100% offline là bắt buộc, không phải sở thích.",
+      "Don't viết style trực tiếp vào thuộc tính style của HTML cho một mẫu đã lặp lại — nó phải thành một class trong app.css."
+    ]
+  }
+}

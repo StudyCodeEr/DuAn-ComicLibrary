@@ -51,6 +51,11 @@
   --muted: #6b6f78;
   --accent: #8a6d12;
   --accent-ink: #ffffff;
+  /* Mau trang thai cung phai doi theo theme: ba mau cua ban toi qua nhat tren
+     nen sang. Documenter chi ra cho nay la drift, khong phai y do. */
+  --ok: #2f6b45;
+  --warn: #8a5c10;
+  --bad: #9c3b35;
 }
 
 * { box-sizing: border-box; }
@@ -149,6 +154,26 @@ button.primary {
 }
 button.ghost { background: transparent; }
 button.iconbtn { padding: 7px; }
+
+/* Nut dang the <a> (tai file, mo link). Co class that nen khong phai nhan ban
+   button.primary bang style= inline nhu truoc. */
+a.btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: var(--fs-sm);
+}
+a.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+a.btn:hover { border-color: var(--accent); }
 
 /* ---------- dải "Đọc tiếp" ---------- */
 /* Câu thứ hai của FIRST VIEWPORT, và là thứ phân biệt thư viện này với một
@@ -354,6 +379,15 @@ h1.page {
   border-top: 1px solid var(--line);
   backdrop-filter: none;
 }
+.reader-title {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .readerbar .spacer { flex: 1; }
 .readerbar .pos { color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; }
 
