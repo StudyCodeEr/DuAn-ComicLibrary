@@ -28,6 +28,7 @@ from mangalib.db import (
     manga_repo,
     page_repo,
     progress_repo,
+    source_repo,
     tag_repo,
 )
 from mangalib.db.models import (
@@ -55,5 +56,6 @@ __all__ = [
     "manga_repo",
     "page_repo",
     "progress_repo",
+    "source_repo",
     "tag_repo",
 ]

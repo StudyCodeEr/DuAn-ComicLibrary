@@ -62,6 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     probe_cmd.add_argument("url")
 
+    dl = sub.add_parser("download", help="tải một truyện về thư viện")
+    dl.add_argument("url")
+    dl.add_argument("--dry-run", action="store_true", help="chỉ in metadata, không ghi gì")
+    dl.add_argument("--headful", action="store_true", help="hiện cửa sổ browser")
+    dl.add_argument("--limit", type=int, help="chỉ tải N chương đầu trong số cần tải")
+
     scan_cmd = sub.add_parser(
         "scan",
         help="dựng lại cơ sở dữ liệu từ thư viện trên đĩa",
@@ -181,6 +187,40 @@ def _cmd_probe(url: str) -> int:
     return 0
 
 
+def _cmd_download(url: str, dry_run: bool, headful: bool, limit: int | None) -> int:
+    from mangalib.download import pipeline
+    from mangalib.errors import ChallengeRequired, MangalibError
+
+    def show(phase: str, message: str) -> None:
+        print(f"  [{phase}] {message}")
+
+    try:
+        report = pipeline.download_manga(
+            url, dry_run=dry_run, headless=not headful, limit=limit, on_progress=show
+        )
+    except ChallengeRequired:
+        print("Site trả về trang challenge. Chạy lại với --headful để tự vượt một lần.")
+        return 2
+    except MangalibError as exc:
+        print(f"Không tải được: {exc}")
+        return 1
+
+    if report.meta:
+        for line in report.meta.describe():
+            print(f"  {line}")
+    if dry_run:
+        print("  (dry-run: không ghi gì)")
+        return 0
+
+    print(
+        f"Đã lưu {report.pages_saved}/{report.pages_expected} trang · "
+        f"{report.chapters_done} chương tải · {report.chapters_skipped} chương bỏ qua"
+    )
+    for message in report.errors[:10]:
+        print(f"  - {message}")
+    return 0 if report.ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     parser = build_parser()
@@ -198,6 +238,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_doctor_paths(create=args.create)
         if args.command == "probe":
             return _cmd_probe(args.url)
+        if args.command == "download":
+            return _cmd_download(args.url, args.dry_run, args.headful, args.limit)
         if args.command == "scan":
             return _cmd_scan(root=args.root, prune=args.prune, reset=args.reset)
         parser.error(f"lệnh không biết: {args.command}")

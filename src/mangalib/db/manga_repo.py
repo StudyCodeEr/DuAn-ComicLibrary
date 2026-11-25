@@ -27,6 +27,7 @@ __all__ = [
     "get_by_id",
     "get_by_slug",
     "search",
+    "set_cover",
     "touch_read",
     "unique_slug",
     "upsert",
@@ -236,6 +237,15 @@ def search(
     ).fetchall()
 
     return [_hydrate(conn, row) for row in rows], total
+
+
+def set_cover(conn: sqlite3.Connection, slug: str, cover_file: str) -> bool:
+    """Chỉ đổi ảnh bìa. Dùng upsert ở đây sẽ xoá mất source_key/source_url."""
+    cursor = conn.execute(
+        "UPDATE manga SET cover_file = ?, updated_at = datetime('now') WHERE slug = ?",
+        (cover_file, slug),
+    )
+    return bool(cursor.rowcount)
 
 
 def count(conn: sqlite3.Connection) -> int:
