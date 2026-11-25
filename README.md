@@ -1,6 +1,6 @@
 <div align="center">
 
-# Manga Local Library
+# Comic Library
 
 **Ứng dụng desktop tải truyện tranh, quản lý thư viện cục bộ và phát nội dung sang điện thoại trong cùng mạng LAN.**
 
