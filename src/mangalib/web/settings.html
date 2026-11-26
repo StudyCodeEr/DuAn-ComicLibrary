@@ -49,6 +49,33 @@
   </div>
 
   <div class="panel">
+    <h2>Khởi động và tắt</h2>
+
+    <label class="check">
+      <input id="f-autostart" type="checkbox">
+      <span>Khởi động cùng Windows</span>
+    </label>
+    <p class="count" style="padding:4px 0 12px">
+      Chạy ngầm ngay khi đăng nhập, nên điện thoại vào được thư viện mà không cần
+      mở ứng dụng trước.
+    </p>
+
+    <label class="pos" for="f-close">Khi đóng cửa sổ</label>
+    <div class="row">
+      <select id="f-close">
+        <option value="tray">Chạy tiếp ở khay hệ thống</option>
+        <option value="quit">Thoát hẳn ứng dụng</option>
+      </select>
+    </div>
+    <p class="count" style="padding:4px 0 0">
+      Cửa sổ ứng dụng là cửa sổ Edge nên nút đóng của nó không chặn được — chọn
+      "Thoát hẳn" thì ứng dụng bỏ luôn biểu tượng khay, cửa sổ nằm ở taskbar như
+      mọi cửa sổ khác và đóng là thoát. Có hiệu lực từ lần mở ứng dụng sau.
+    </p>
+    <p class="count" id="startmsg" hidden style="padding:4px 0 0"></p>
+  </div>
+
+  <div class="panel">
     <h2>Đường dẫn và cấu hình</h2>
 
     <label class="pos" for="libpath">Thư mục lưu truyện</label>

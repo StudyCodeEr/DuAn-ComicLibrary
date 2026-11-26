@@ -23,6 +23,7 @@ from mangalib.errors import ConfigError
 __all__ = ["AppConfig", "ensure_lan_token", "load", "save"]
 
 ImageFormat = Literal["original", "jpeg", "png", "webp"]
+CloseAction = Literal["tray", "quit"]
 
 
 class AppConfig(BaseModel):
@@ -41,6 +42,10 @@ class AppConfig(BaseModel):
 
     lan_token: str = ""
     autostart: bool = False
+    """Chỉ là bản sao cho dễ đọc. SỰ THẬT nằm ở Registry — xem `shell.autostart`."""
+
+    close_action: CloseAction = "tray"
+    """Đóng cửa sổ thì làm gì: `tray` = chạy tiếp ở khay, `quit` = thoát hẳn."""
     theme: Literal["dark", "light"] = "dark"
 
     model_config = {"extra": "forbid"}

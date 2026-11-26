@@ -7,9 +7,9 @@ KHÔNG trả về đường dẫn thật, đúng thứ ta cần để ghi vào c
 
 Nên gọi PowerShell - thứ Windows nào cũng có sẵn, 0 byte thêm vào gói.
 
-Đặt ở module lá chứ không trong `shell/`: import bất cứ thứ gì trong `shell/` sẽ
-chạy `shell/__init__.py`, kéo luôn `pystray` và `PIL` vào tiến trình server chỉ
-để hiện một hộp thoại.
+Đặt ở module lá chứ không trong `shell/` vì nó không liên quan gì tới vỏ desktop:
+`shell/` là khay hệ thống, cửa sổ app và tự khởi động, còn đây chỉ là một hộp
+thoại chọn thư mục mà API gọi tới.
 """
 
 from __future__ import annotations

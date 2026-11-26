@@ -9,6 +9,9 @@ const imgFormat = document.getElementById("imgfmt");
 const saveButton = document.getElementById("save");
 const browseButton = document.getElementById("browse");
 const saveMessage = document.getElementById("savemsg");
+const autostartBox = document.getElementById("f-autostart");
+const closeSelect = document.getElementById("f-close");
+const startMessage = document.getElementById("startmsg");
 const lanBox = document.getElementById("lan");
 const qrImage = document.getElementById("qr");
 
@@ -33,6 +36,8 @@ api
 
     libPath.value = data.library_override || "";
     imgFormat.value = data.image_format;
+    autostartBox.checked = data.autostart;
+    closeSelect.value = data.close_action;
 
     pairs(infoBox, [
       ["Thư mục dữ liệu", data.data_root],
@@ -63,6 +68,35 @@ browseButton.addEventListener("click", async () => {
     browseButton.disabled = false;
   }
 });
+
+// Hai thiet lap nay la cong tac: luu ngay khi doi, khong bat bam them nut Luu.
+async function luuNgay(body, loiNhan) {
+  // Bao ngay trong panel nay, khong day xuong dong thong bao cua panel duoi.
+  startMessage.hidden = false;
+  try {
+    const saved = await api.saveSettings(body);
+    autostartBox.checked = saved.autostart;
+    startMessage.textContent = loiNhan;
+    startMessage.dataset.bad = "0";
+  } catch (error) {
+    startMessage.textContent = `Không lưu được: ${error.message}`;
+    startMessage.dataset.bad = "1";
+  }
+}
+
+autostartBox.addEventListener("change", () =>
+  luuNgay(
+    { autostart: autostartBox.checked },
+    autostartBox.checked ? "Đã bật khởi động cùng Windows." : "Đã tắt khởi động cùng Windows.",
+  ),
+);
+
+closeSelect.addEventListener("change", () =>
+  luuNgay(
+    { close_action: closeSelect.value },
+    "Đã lưu. Có hiệu lực từ lần mở ứng dụng sau.",
+  ),
+);
 
 saveButton.addEventListener("click", async () => {
   saveButton.disabled = true;

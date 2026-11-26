@@ -32,21 +32,28 @@ def find_browser() -> Path | None:
     return None
 
 
-def open_window(url: str, *, width: int = 1280, height: int = 900) -> str:
-    """Mở cửa sổ app. Trả về cách đã dùng, để báo lại cho người dùng."""
+def open_window(
+    url: str, *, width: int = 1280, height: int = 900
+) -> tuple[str, subprocess.Popen | None]:
+    """Mở cửa sổ app.
+
+    Trả `(mô tả cách đã mở, tiến trình)`. Cần tiến trình để biết lúc người dùng
+    đóng cửa sổ — ta không sở hữu nút X của cửa sổ Edge nên chỉ theo dõi được
+    bằng cách chờ tiến trình kết thúc.
+    """
     browser = find_browser()
     if browser is not None:
         try:
-            subprocess.Popen(
+            proc = subprocess.Popen(
                 [
                     str(browser),
                     f"--app={url}",
                     f"--window-size={width},{height}",
                 ]
             )
-            return f"cửa sổ app ({browser.name})"
+            return f"cửa sổ app ({browser.name})", proc
         except OSError as exc:
             logger.warning("không mở được %s: %s", browser.name, exc)
 
     webbrowser.open(url)
-    return "trình duyệt mặc định"
+    return "trình duyệt mặc định", None

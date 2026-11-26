@@ -262,6 +262,9 @@ def _cmd_app(hidden: bool, port: int, autostart_action: str | None) -> int:
         print(("Đã bật" if autostart_action == "on" else "Đã tắt"), "tự khởi động." if ok else "— thất bại.")
         return 0 if ok else 1
 
+    from mangalib import config as cau_hinh
+
+    cfg = cau_hinh.load()
     url = f"http://127.0.0.1:{port}"
     server = uvicorn.Server(
         uvicorn.Config(create_app(), host="0.0.0.0", port=port, log_config=None, log_level="warning")
@@ -275,10 +278,21 @@ def _cmd_app(hidden: bool, port: int, autostart_action: str | None) -> int:
         time.sleep(0.1)
 
     print(f"Web UI: {url}")
+    cua_so = None
     if not hidden:
-        print("Đang mở:", window.open_window(url))
+        mo_ta, cua_so = window.open_window(url)
+        print("Đang mở:", mo_ta)
 
-    tray.run_tray(url, on_open=lambda: window.open_window(url), on_quit=lambda: None)
+    if cfg.close_action == "quit" and cua_so is not None:
+        # Khong dung khay he thong: cua so nam o taskbar nhu moi cua so khac, va
+        # dong no la thoat han. Ta khong so huu nut X cua cua so Edge nen chi
+        # biet nguoi dung da dong bang cach cho tien trinh ket thuc.
+        print("Đóng cửa sổ sẽ thoát hẳn ứng dụng (đổi trong Cài đặt).")
+        cua_so.wait()
+    else:
+        # `--hidden` khong co cua so nao de cho, nen luon phai dung khay.
+        tray.run_tray(url, on_open=lambda: window.open_window(url)[0], on_quit=lambda: None)
+
     server.should_exit = True
     thread.join(timeout=5)
     return 0

@@ -172,3 +172,51 @@ def test_thu_tu_phai_gom_dung_cac_chuong_cua_truyen(client, truyen):
     )
 
     assert response.status_code == 400
+
+
+def test_cai_dat_bao_trang_thai_tu_khoi_dong_va_cach_tat(client):
+    data = client.get("/api/v1/settings").json()
+
+    assert "autostart" in data
+    assert data["close_action"] == "tray", "mặc định là chạy tiếp ở khay"
+
+
+def test_doi_cach_tat_duoc_luu_lai(client):
+    assert client.patch("/api/v1/settings", json={"close_action": "quit"}).status_code == 200
+
+    assert client.get("/api/v1/settings").json()["close_action"] == "quit"
+
+
+def test_cach_tat_khong_hop_le_bi_tu_choi(client):
+    assert client.patch(
+        "/api/v1/settings", json={"close_action": "minimize"}
+    ).status_code == 422
+
+
+def test_bat_tu_khoi_dong_ghi_vao_registry(client, monkeypatch):
+    """Sự thật nằm ở Registry, không phải ở config — nên phải gọi thật vào đó.
+
+    Chặn lại trong test: không được đụng Registry của máy đang chạy test.
+    """
+    from mangalib.api import routes_settings
+
+    da_goi = []
+    monkeypatch.setattr(
+        routes_settings.autostart, "enable", lambda: da_goi.append("enable") or True
+    )
+    monkeypatch.setattr(routes_settings.autostart, "is_enabled", lambda: True)
+
+    response = client.patch("/api/v1/settings", json={"autostart": True})
+
+    assert response.status_code == 200
+    assert da_goi == ["enable"]
+    assert response.json()["autostart"] is True
+
+
+def test_bao_loi_khi_khong_ghi_duoc_registry(client, monkeypatch):
+    """Thất bại âm thầm là tệ nhất: người dùng tick vào rồi tưởng đã bật."""
+    from mangalib.api import routes_settings
+
+    monkeypatch.setattr(routes_settings.autostart, "enable", lambda: False)
+
+    assert client.patch("/api/v1/settings", json={"autostart": True}).status_code == 500

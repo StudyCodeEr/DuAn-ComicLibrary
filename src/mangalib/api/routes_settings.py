@@ -11,7 +11,8 @@ from pydantic import BaseModel
 
 from mangalib import config, paths
 from mangalib.api.deps import require_local
-from mangalib.config import AppConfig, ImageFormat
+from mangalib.config import AppConfig, CloseAction, ImageFormat
+from mangalib.shell import autostart
 
 router = APIRouter(dependencies=[Depends(require_local)])
 
@@ -44,6 +45,10 @@ def get_settings() -> dict:
         # Gia tri THO de o nhap hien dung cai nguoi dung da dat, khong phai duong
         # dan da giai ra - neu khong, bo trong se bi ghi de thanh duong dan mac dinh.
         "library_override": cfg.library_override,
+        # SU THAT cua tu khoi dong nam o Registry, khong phai o config: nguoi dung
+        # co the bat/tat bang `mangalib app --autostart`, luc do config se lech.
+        "autostart": autostart.is_enabled(),
+        "close_action": cfg.close_action,
     }
 
 
@@ -52,6 +57,8 @@ class SettingsIn(BaseModel):
 
     image_format: ImageFormat | None = None
     library_override: str | None = None
+    autostart: bool | None = None
+    close_action: CloseAction | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -70,11 +77,18 @@ def update_settings(payload: SettingsIn) -> dict:
         except OSError as exc:
             raise HTTPException(400, f"không dùng được thư mục này: {exc}") from exc
 
+    if payload.autostart is not None:
+        ok = autostart.enable() if payload.autostart else autostart.disable()
+        if not ok:
+            raise HTTPException(500, "không ghi được vào Registry để đổi tự khởi động")
+
     config.save(updated)
     return {
         "image_format": updated.image_format,
         "library_override": updated.library_override,
         "library_dir": str(paths.library_dir()),
+        "autostart": autostart.is_enabled(),
+        "close_action": updated.close_action,
     }
 
 
